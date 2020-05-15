@@ -11,6 +11,9 @@ class Blender(Extension):
         super().__init__()
         self.setMenuName(i18n_catalog.i18nc("@item:inmenu", "Blender"))
         self.addMenuItem(i18n_catalog.i18nc("@item:inmenu", "Select Blender File"), self.openFile)
+        self.addMenuItem(i18n_catalog.i18nc("@item:inmenu", "Scale Size"), self.openFile)
+        self.addMenuItem(i18n_catalog.i18nc("@item:inmenu", "Check Waterproof"), self.openFile)
+        self.addMenuItem(i18n_catalog.i18nc("@item:inmenu", "Reload Object"), self.openFile)
 
     def openFile(self):
         Logger.log("e", "Not opening file since this feature is currently under development.")
