@@ -1,0 +1,8 @@
+{
+    "name": "Blender",
+    "author": "Alexander Wiegel & Yusuf Ay",
+    "version": "alpha",
+    "description": "Open Blender files directly without importing/exporting.",
+    "api": "7.2.0",
+    "i18n-catalog": "uranium"
+}
