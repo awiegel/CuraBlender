@@ -7,6 +7,8 @@ from UM.Application import Application
 from UM.Mesh.MeshReader import MeshReader
 
 
+global global_path, blender_path
+
 class BLENDReader(MeshReader):
     def __init__(self) -> None:
         super().__init__()
@@ -16,8 +18,10 @@ class BLENDReader(MeshReader):
     # Main entry point
     # Reads the file, returns a SceneNode (possibly with nested ones), or None
     def _read(self, file_path):
+        global global_path, blender_path
         temp_path = os.path.dirname(file_path) + '/temp.stl'
         blender_path = 'C:/Program Files/Blender Foundation/Blender 2.82/blender.exe'
+        global_path = file_path
 
         command = (
             blender_path,
