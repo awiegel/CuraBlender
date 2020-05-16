@@ -26,11 +26,11 @@ class BLENDReader(MeshReader):
             '--python-expr',
             'import bpy;'
             'import sys;'
-            'stl_path = sys.argv[-1];'
-            'bpy.ops.export_mesh.stl(filepath = stl_path, check_existing = False, global_scale = 10)',
+            'temp_path = sys.argv[-1];'
+            'bpy.ops.export_mesh.stl(filepath = temp_path, check_existing = False, global_scale = 10)',
             '--', temp_path
         )
-        command = subprocess.Popen(command)
+        command = subprocess.Popen(command, shell = True)
         command.wait()
 
         reader = Application.getInstance().getMeshFileHandler().getReaderForFile(temp_path)
