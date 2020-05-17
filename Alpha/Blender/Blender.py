@@ -16,11 +16,12 @@ from UM.Scene.Selection import Selection
 from UM.Scene.SceneNode import SceneNode
 from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
 from UM.Operations.RemoveSceneNodeOperation import RemoveSceneNodeOperation
+from UM.Operations.AddSceneNodeOperation import AddSceneNodeOperation
 
 i18n_catalog = i18nCatalog('uranium')
 
 
-
+from UM.FileHandler.ReadFileJob import ReadFileJob
 from UM.Qt.QtApplication import QtApplication
 
 class Blender(Extension):
@@ -89,16 +90,21 @@ class Blender(Extension):
         message = self.getMessage('Work in Progress', 'Reload Object is not implemented yet.')
         message.show()
         Logger.log("i", "Clearing scene")
-
-
+        scene = Application.getInstance().getController().getScene()
         #readLocalFile(QUrl.fromLocalFile(filename))
-        obj = BLENDReader.BLENDReader()
-        obj.__init__()
-        Logger.log('d', obj)
-        data = BLENDReader.BLENDReader.read(obj, BLENDReader.global_path)
-        Logger.log('d', data)
+        #obj = BLENDReader.BLENDReader()
+        #obj.__init__()
+        #Logger.log('d', obj)
+        node = BLENDReader.BLENDReader.read(BLENDReader.BLENDReader(), BLENDReader.global_path)
+        add = AddSceneNodeOperation(node, scene.getRoot())
+        Logger.log('d', node)
+        add.push()
+        #Selection.add(node)
+        scene.sceneChanged.emit(node)
+        #Logger.log('d', data)
+        #ReadFileJob("C:/Users/alex-/Documents/temp.stl")
+        #Application.getInstance().getController().getScene().addWatchedFile("C:/Users/alex-/Documents/temp.stl")
         Logger.log('d', 'TESTTEST')
-        return data
 
     def _onActionTriggered(self, message, action):
         '''Callback function for the 'download' button on the update notification.
