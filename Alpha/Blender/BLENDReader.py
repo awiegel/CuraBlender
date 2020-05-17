@@ -17,12 +17,19 @@ class BLENDReader(MeshReader):
 
     # Main entry point
     # Reads the file, returns a SceneNode (possibly with nested ones), or None
-    def _read(self, file_path):
+    def read(self, file_path):
         global global_path, blender_path
-        temp_path = os.path.dirname(file_path) + '/temp.stl'
         blender_path = 'C:/Program Files/Blender Foundation/Blender 2.82/blender.exe'
         global_path = file_path
+        
+        temp_path = self._convertFile(blender_path, file_path)
+        data = self._openFile(temp_path)
+        Logger.log('d', data)
+        return data
 
+
+    def _convertFile(self, blender_path, file_path):
+        temp_path = os.path.dirname(file_path) + '/temp.stl'
         command = (
             blender_path,
             file_path,
@@ -36,7 +43,9 @@ class BLENDReader(MeshReader):
         )
         command = subprocess.Popen(command, shell = True)
         command.wait()
+        return temp_path
 
+    def _openFile(self, temp_path):
         reader = Application.getInstance().getMeshFileHandler().getReaderForFile(temp_path)
         data = reader.read(temp_path)
         os.remove(temp_path)
