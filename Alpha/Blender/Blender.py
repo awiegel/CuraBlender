@@ -11,16 +11,28 @@ from PyQt5.QtGui import QDesktopServices
 
 from . import BLENDReader
 
+from UM.Operations.GroupedOperation import GroupedOperation
+from UM.Scene.Selection import Selection
+from UM.Scene.SceneNode import SceneNode
+from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
+from UM.Operations.RemoveSceneNodeOperation import RemoveSceneNodeOperation
+
 i18n_catalog = i18nCatalog('uranium')
 
+
+
+from UM.Qt.QtApplication import QtApplication
 
 class Blender(Extension):
     def __init__(self):
         super().__init__()
+        self._supported_extensions = ['.blend']
+        self._namespaces = {}   # type: Dict[str, str]
         self.setMenuName(i18n_catalog.i18nc('@item:inmenu', 'Blender'))
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Scale Size'), self.scaleSize)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Check Waterproof'), self.checkWaterproof)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Reload Object'), self.reloadFile)
+        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'CLOSE'), self.close)
 
         BLENDReader.global_path = None
         BLENDReader.blender_path = None
@@ -44,10 +56,49 @@ class Blender(Extension):
         message.actionTriggered.connect(self._onActionTriggered)
         message.show()
 
+    def close(self):
+        scene = Application.getInstance().getController().getScene()
+        nodes = []
+        for node in DepthFirstIterator(scene.getRoot()):
+            if not node.isEnabled():
+                continue
+            if not node.getMeshData() and not node.callDecoration("isGroup"):
+                continue  # Node that doesnt have a mesh and is not a group.
+            #if only_selectable and not node.isSelectable():
+            #    continue  # Only remove nodes that are selectable.
+            #if node.getParent() and cast(SceneNode, node.getParent()).callDecoration("isGroup"):
+            #    continue  # Grouped nodes don't need resetting as their parent (the group) is resetted)
+            nodes.append(node)
+        if nodes:
+            #from UM.Operations.GroupedOperation import GroupedOperation
+            op = GroupedOperation()
+
+            for node in nodes:
+                #from UM.Operations.RemoveSceneNodeOperation import RemoveSceneNodeOperation
+                op.addOperation(RemoveSceneNodeOperation(node))
+
+                # Reset the print information
+                scene.sceneChanged.emit(node)
+
+            op.push()
+            #from UM.Scene.Selection import Selection
+            Selection.clear()
+
     def reloadFile(self):
         Logger.log('i', 'Reload File is currently under development.')
         message = self.getMessage('Work in Progress', 'Reload Object is not implemented yet.')
         message.show()
+        Logger.log("i", "Clearing scene")
+
+
+        #readLocalFile(QUrl.fromLocalFile(filename))
+        obj = BLENDReader.BLENDReader()
+        obj.__init__()
+        Logger.log('d', obj)
+        data = BLENDReader.BLENDReader.read(obj, BLENDReader.global_path)
+        Logger.log('d', data)
+        Logger.log('d', 'TESTTEST')
+        return data
 
     def _onActionTriggered(self, message, action):
         '''Callback function for the 'download' button on the update notification.
