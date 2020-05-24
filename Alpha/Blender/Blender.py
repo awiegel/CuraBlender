@@ -62,36 +62,38 @@ class Blender(Extension):
         message = self.getMessage('Work in Progress', 'Reload Object is not implemented yet.')
         message.show()
         Logger.log("i", "Clearing scene")
-        scene = Application.getInstance().getController().getScene()
-        nodes = []
-        new_node = BLENDReader.BLENDReader.read(BLENDReader.BLENDReader(), BLENDReader.global_path)
-        new_node.setSelectable(True)
+#        scene = Application.getInstance().getController().getScene()
+#        nodes = []
+#        new_node = BLENDReader.BLENDReader.read(BLENDReader.BLENDReader(), BLENDReader.global_path)
+
+#        new_node.setSelectable(True)
         
-        for node in DepthFirstIterator(scene.getRoot()):
-            if not node.isEnabled():
-                continue
-            if not node.getMeshData() and not node.callDecoration("isGroup"):
-                continue  # Node that doesnt have a mesh and is not a group.
+#        for node in DepthFirstIterator(scene.getRoot()):
+#            if not node.isEnabled():
+#                continue
+#            if not node.getMeshData() and not node.callDecoration("isGroup"):
+#                continue  # Node that doesnt have a mesh and is not a group.
             #if only_selectable and not node.isSelectable():
             #    continue  # Only remove nodes that are selectable.
             #if node.getParent() and cast(SceneNode, node.getParent()).callDecoration("isGroup"):
             #    continue  # Grouped nodes don't need resetting as their parent (the group) is resetted)
-            nodes.append(node)
-        if nodes:
+#            nodes.append(node)
+#        if nodes:
             #from UM.Operations.GroupedOperation import GroupedOperation
-            op = GroupedOperation()
+#            op = GroupedOperation()
 
-            for node in nodes:
+#            for node in nodes:
                 #from UM.Operations.RemoveSceneNodeOperation import RemoveSceneNodeOperation
-                op.addOperation(RemoveSceneNodeOperation(node))
-                op.addOperation(AddSceneNodeOperation(new_node, scene.getRoot()))
+#                op.addOperation(RemoveSceneNodeOperation(node))
+#                op.addOperation(AddSceneNodeOperation(new_node, scene.getRoot()))
 
                 # Reset the print information
-                scene.sceneChanged.emit(node)
+#                scene.sceneChanged.emit(node)
 
-            op.push()
+#            op.push()
             #from UM.Scene.Selection import Selection
-            Selection.clear()
+#            Selection.clear()
+        BLENDReader.BLENDReader.read(BLENDReader.BLENDReader(), BLENDReader.global_path)
         Logger.log('d', 'TESTTEST')
 
     def _onActionTriggered(self, message, action):
