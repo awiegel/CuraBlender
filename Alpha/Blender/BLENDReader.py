@@ -59,8 +59,10 @@ class BLENDReader(MeshReader):
             #blender_path = 'test'
         elif system == 'Darwin':
             blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
-        else:
+        elif system == 'Linux':
             blender_path = '/usr/share/blender/2.82/blender'
+        else:
+            blender_path = None
         return blender_path
 
 
@@ -76,8 +78,11 @@ class BLENDReader(MeshReader):
         elif system == 'Darwin':
             dialog.setDirectory('/Applications')
             dialog.setNameFilters(["Blender (*.app)"])
-        else:
+        elif system == 'Linux':
             dialog.setDirectory('/usr/share')
+        else:
+            dialog.setDirectory('')
+
         dialog.setFileMode(QFileDialog.ExistingFile)
         dialog.setViewMode(QFileDialog.Detail)
         dialog.exec_()
