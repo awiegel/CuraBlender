@@ -1,31 +1,87 @@
-import os.path
-import subprocess
 import sys
+import platform
+import os.path
+import glob
+import subprocess
+
 
 from UM.Logger import Logger
+from UM.Message import Message
 from UM.Application import Application
 from UM.Mesh.MeshReader import MeshReader
+#from UM.MimeTypeDatabase import MimeTypeDatabase, MimeType
+
+from PyQt5.QtWidgets import QFileDialog
+from UM.i18n import i18nCatalog
+
+i18n_catalog = i18nCatalog('uranium')
 
 
 global global_path, blender_path
+global_path = None
+blender_path = None
 
 class BLENDReader(MeshReader):
     def __init__(self) -> None:
         super().__init__()
         self._supported_extensions = ['.blend']
-        self._namespaces = {}   # type: Dict[str, str]
+
+        #MimeTypeDatabase.addMimeType(
+        #    MimeType(
+        #        name = "model/blend",
+        #        comment = "BLEND File",
+        #        suffixes = ["blend"]
+        #    )
+        #)
 
     # Main entry point
     # Reads the file, returns a SceneNode (possibly with nested ones), or None
     def read(self, file_path):
         global global_path, blender_path
-        blender_path = 'C:/Program Files/Blender Foundation/Blender 2.82/blender.exe'
-        global_path = file_path
+        system = platform.system()
+
+        if not blender_path:
+            blender_path = self._setBlenderPath(blender_path, system)
         
+        if not os.path.exists(blender_path):
+            blender_path = self._openFileDialog(blender_path, system)
+
+        global_path = file_path
         temp_path = self._convertFile(blender_path, file_path)
         data = self._openFile(temp_path)
-        Logger.log('d', data)
         return data
+
+
+    def _setBlenderPath(self, blender_path, system):
+        if system == 'Windows':
+            temp_blender_path = glob.glob('C:/Program Files/Blender Foundation/**/*.exe')
+            blender_path = ''.join(temp_blender_path).replace('\\', '/')
+            #blender_path = 'test'
+        elif system == 'Darwin':
+            blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
+        else:
+            blender_path = '/usr/share/blender/2.82/blender'
+        return blender_path
+
+
+    def _openFileDialog(self, blender_path, system):
+        message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually'), title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
+        message.show()
+
+        dialog = QFileDialog()
+        dialog.setAcceptMode(QFileDialog.AcceptOpen)
+        if system == 'Windows':
+            dialog.setDirectory('C:/Program Files')
+        elif system == 'Darwin':
+            dialog.setDirectory('/Applications')
+        else:
+            dialog.setDirectory('/usr/share')
+        dialog.setFileMode(QFileDialog.ExistingFile)
+        dialog.setNameFilters(["Blender (*.exe)"])
+        dialog.setViewMode(QFileDialog.Detail)
+        dialog.exec_()
+        blender_path = ''.join(dialog.selectedFiles())
+        return blender_path
 
 
     def _convertFile(self, blender_path, file_path):
