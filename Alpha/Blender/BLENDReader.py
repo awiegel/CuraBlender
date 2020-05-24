@@ -72,12 +72,13 @@ class BLENDReader(MeshReader):
         dialog.setAcceptMode(QFileDialog.AcceptOpen)
         if system == 'Windows':
             dialog.setDirectory('C:/Program Files')
+            dialog.setNameFilters(["Blender (*.exe)"])
         elif system == 'Darwin':
             dialog.setDirectory('/Applications')
+            dialog.setNameFilters(["Blender (*.app)"])
         else:
             dialog.setDirectory('/usr/share')
         dialog.setFileMode(QFileDialog.ExistingFile)
-        dialog.setNameFilters(["Blender (*.exe)"])
         dialog.setViewMode(QFileDialog.Detail)
         dialog.exec_()
         blender_path = ''.join(dialog.selectedFiles())
