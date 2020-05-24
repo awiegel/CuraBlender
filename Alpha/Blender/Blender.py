@@ -33,7 +33,6 @@ class Blender(Extension):
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Scale Size'), self.scaleSize)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Check Waterproof'), self.checkWaterproof)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Reload Object'), self.reloadFile)
-        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'CLOSE'), self.close)
 
         BLENDReader.global_path = None
         BLENDReader.blender_path = None
@@ -57,9 +56,17 @@ class Blender(Extension):
         message.actionTriggered.connect(self._onActionTriggered)
         message.show()
 
-    def close(self):
+
+    def reloadFile(self):
+        Logger.log('i', 'Reload File is currently under development.')
+        message = self.getMessage('Work in Progress', 'Reload Object is not implemented yet.')
+        message.show()
+        Logger.log("i", "Clearing scene")
         scene = Application.getInstance().getController().getScene()
         nodes = []
+        new_node = BLENDReader.BLENDReader.read(BLENDReader.BLENDReader(), BLENDReader.global_path)
+        new_node.setSelectable(True)
+        
         for node in DepthFirstIterator(scene.getRoot()):
             if not node.isEnabled():
                 continue
@@ -77,6 +84,7 @@ class Blender(Extension):
             for node in nodes:
                 #from UM.Operations.RemoveSceneNodeOperation import RemoveSceneNodeOperation
                 op.addOperation(RemoveSceneNodeOperation(node))
+                op.addOperation(AddSceneNodeOperation(new_node, scene.getRoot()))
 
                 # Reset the print information
                 scene.sceneChanged.emit(node)
@@ -84,26 +92,6 @@ class Blender(Extension):
             op.push()
             #from UM.Scene.Selection import Selection
             Selection.clear()
-
-    def reloadFile(self):
-        Logger.log('i', 'Reload File is currently under development.')
-        message = self.getMessage('Work in Progress', 'Reload Object is not implemented yet.')
-        message.show()
-        Logger.log("i", "Clearing scene")
-        scene = Application.getInstance().getController().getScene()
-        #readLocalFile(QUrl.fromLocalFile(filename))
-        #obj = BLENDReader.BLENDReader()
-        #obj.__init__()
-        #Logger.log('d', obj)
-        node = BLENDReader.BLENDReader.read(BLENDReader.BLENDReader(), BLENDReader.global_path)
-        add = AddSceneNodeOperation(node, scene.getRoot())
-        Logger.log('d', node)
-        add.push()
-        #Selection.add(node)
-        scene.sceneChanged.emit(node)
-        #Logger.log('d', data)
-        #ReadFileJob("C:/Users/alex-/Documents/temp.stl")
-        #Application.getInstance().getController().getScene().addWatchedFile("C:/Users/alex-/Documents/temp.stl")
         Logger.log('d', 'TESTTEST')
 
     def _onActionTriggered(self, message, action):
