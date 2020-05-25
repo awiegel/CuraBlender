@@ -4,12 +4,10 @@ import os.path
 import glob
 import subprocess
 
-
 from UM.Logger import Logger
 from UM.Message import Message
 from UM.Application import Application
 from UM.Mesh.MeshReader import MeshReader
-#from UM.MimeTypeDatabase import MimeTypeDatabase, MimeType
 
 from PyQt5.QtWidgets import QFileDialog
 from UM.i18n import i18nCatalog
@@ -26,13 +24,6 @@ class BLENDReader(MeshReader):
         super().__init__()
         self._supported_extensions = ['.blend']
 
-        #MimeTypeDatabase.addMimeType(
-        #    MimeType(
-        #        name = "model/blend",
-        #        comment = "BLEND File",
-        #        suffixes = ["blend"]
-        #    )
-        #)
 
     # Main entry point
     # Reads the file, returns a SceneNode (possibly with nested ones), or None
@@ -85,7 +76,8 @@ class BLENDReader(MeshReader):
 
         dialog.setFileMode(QFileDialog.ExistingFile)
         dialog.setViewMode(QFileDialog.Detail)
-        dialog.exec_()
+        if dialog.exec_():
+            message.hide()
         blender_path = ''.join(dialog.selectedFiles())
         return blender_path
 
@@ -107,8 +99,9 @@ class BLENDReader(MeshReader):
         command.wait()
         return temp_path
 
+
     def _openFile(self, temp_path):
         reader = Application.getInstance().getMeshFileHandler().getReaderForFile(temp_path)
         data = reader.read(temp_path)
-        os.remove(temp_path)
+        #os.remove(temp_path)
         return data
