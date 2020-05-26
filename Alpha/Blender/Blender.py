@@ -1,62 +1,122 @@
 import subprocess
 
+from UM.Logger import Logger
+from UM.Message import Message
 from UM.Extension import Extension
 from UM.Application import Application
 from UM.i18n import i18nCatalog
-from UM.Logger import Logger
-from UM.Message import Message
 
-from PyQt5.QtCore import QTimer, QUrl
+from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QDesktopServices
 
 from . import BLENDReader
 
-from UM.Operations.GroupedOperation import GroupedOperation
-from UM.Scene.Selection import Selection
+#from UM.Operations.GroupedOperation import GroupedOperation
+#from UM.Scene.Selection import Selection
 from UM.Scene.SceneNode import SceneNode
 from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
-from UM.Operations.RemoveSceneNodeOperation import RemoveSceneNodeOperation
-from UM.Operations.AddSceneNodeOperation import AddSceneNodeOperation
+#from UM.Operations.RemoveSceneNodeOperation import RemoveSceneNodeOperation
+#from UM.Operations.AddSceneNodeOperation import AddSceneNodeOperation
+
+from UM.Math.Vector import Vector
+from cura.Scene.CuraSceneNode import CuraSceneNode
+
+# from PyQt5.QtCore import QFileSystemWatcher  # To watch files for changes.
+#from PyQt5 import QtCore
+# from UM.Signal import Signal, signalemitter
+#from PyQt5.QtCore import Signal
 
 i18n_catalog = i18nCatalog('uranium')
 
-
-from UM.FileHandler.ReadFileJob import ReadFileJob
-from UM.Qt.QtApplication import QtApplication
-
+# @signalemitter
 class Blender(Extension):
     def __init__(self):
         super().__init__()
         self._supported_extensions = ['.blend']
         self._namespaces = {}   # type: Dict[str, str]
         self.setMenuName(i18n_catalog.i18nc('@item:inmenu', 'Blender'))
+        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Open in Blender'), self.openInBlender)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Scale Size'), self.scaleSize)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Check Waterproof'), self.checkWaterproof)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Reload Object'), self.reloadFile)
 
-        BLENDReader.global_path = None
-        BLENDReader.blender_path = None
+        #BLENDReader.global_path = None
+        #BLENDReader.blender_path = None
+
 
     def getMessage(self, title, text):
         message = Message(text=i18n_catalog.i18nc('@info', text), title=i18n_catalog.i18nc('@info:title', title))
         return message
 
+
+    def openInBlender(self):
+        if BLENDReader.blender_path is None:
+            QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
+        elif BLENDReader.global_path is None:
+            subprocess.Popen(BLENDReader.blender_path, shell = True)
+        else:
+            subprocess.Popen((BLENDReader.blender_path, BLENDReader.global_path), shell = True)
+
+
     def scaleSize(self):
         Logger.log('i', 'Scale Size is currently under development.')
-        message = self.getMessage('Work in Progress', 'Scale Size is not implemented yet.')
-        message.show()
-
-    def checkWaterproof(self):
-        Logger.log('i', 'Check Waterproof is currently under development.')
-        message = self.getMessage('Check Waterproof!', 'Your Object is not waterproof! You can fix it directly in Blender ;)')
-        message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'),
-                          '[no_icon]', '[no_description]', button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-        message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'),
-                          '[no_icon]', '[no_description]', button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
-        message.actionTriggered.connect(self._onActionTriggered)
+        message = self.getMessage('Scale Size', 'Choose your Size.')
+        message.addAction('MAXIMUM', i18n_catalog.i18nc('@action:button', 'MAXIMUM'),
+                          '[no_icon]', '[no_description]')
+        message.addAction('AVERAGE', i18n_catalog.i18nc('@action:button', 'AVERAGE'),
+                          '[no_icon]', '[no_description]', button_style=Message.ActionButtonStyle.SECONDARY)
+        message.addAction('MINIMUM', i18n_catalog.i18nc('@action:button', 'MINIMUM'),
+                          '[no_icon]', '[no_description]')
+        message.actionTriggered.connect(self._scaleTrigger)
         message.show()
 
 
+    def _scaleTrigger(self, message, action):
+        '''Callback function for the 'download' button on the update notification.
+
+        This function is here is because the custom Signal in Uranium keeps a list of weak references to its
+        connections, so the callback functions need to be long-lived. The Blender is short-lived so
+        this function cannot be there.
+        '''
+        if action == 'MAXIMUM':
+            for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
+                if isinstance(node, CuraSceneNode):
+                    Logger.log('d', node.getParent().getBoundingBox())
+                    self.calculateAndSetScale(node, 290)
+        elif action == 'AVERAGE':
+            for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
+                if isinstance(node, CuraSceneNode):
+                    self.calculateAndSetScale(node, 100)
+        elif action == 'MINIMUM':
+            for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
+                if isinstance(node, CuraSceneNode):
+                    self.calculateAndSetScale(node, 5)
+
+
+    def calculateAndSetScale(self, node, size):
+        bounding_box = node.getBoundingBox()
+        width = bounding_box.width
+        height = bounding_box.height
+        depth = bounding_box.depth
+
+        scale_factor = (size / max(width, height, depth))
+
+        if((scale_factor * min(width, height, depth)) < 5):
+            scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
+        if((scale_factor * height) > 290):
+            scale_factor = scale_factor * (290 / (scale_factor * height))
+        if((scale_factor * width) > 170 or (scale_factor * depth) > 170):
+            scale_factor = scale_factor * (170 / (scale_factor * width))
+
+        node.scale(scale = Vector(scale_factor,scale_factor,scale_factor))
+
+        if not Vector(scale_factor,scale_factor,scale_factor) == Vector(1,1,1):
+            Logger.log('i', 'Scaling Node with factor %s', scale_factor)
+            Logger.log('i', 'Before: (width: %s, height: %s, depth: %s', width, height, depth)
+            Logger.log('i', 'After: (width: %s, height: %s, depth: %s', (width * scale_factor), (height * scale_factor), (depth * scale_factor))
+
+
+    #@pyqtSlot()
     def reloadFile(self):
         Logger.log('i', 'Reload File is currently under development.')
         message = self.getMessage('Work in Progress', 'Reload Object is not implemented yet.')
@@ -96,7 +156,21 @@ class Blender(Extension):
         BLENDReader.BLENDReader.read(BLENDReader.BLENDReader(), BLENDReader.global_path)
         Logger.log('d', 'TESTTEST')
 
-    def _onActionTriggered(self, message, action):
+
+    def checkWaterproof(self):
+        Logger.log('i', 'Check Waterproof is currently under development.')
+        message = self.getMessage('Check Waterproof!', 'Your Object is not waterproof! You can fix it directly in Blender ;)')
+        message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'),
+                          '[no_icon]', '[no_description]', button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+        message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'),
+                          '[no_icon]', '[no_description]', button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
+        message.addAction('TEST', i18n_catalog.i18nc('@action:button', 'TEST'),
+                          '[no_icon]', '[no_description]')
+        message.actionTriggered.connect(self._waterproofTrigger)
+        message.show()
+
+
+    def _waterproofTrigger(self, message, action):
         '''Callback function for the 'download' button on the update notification.
 
         This function is here is because the custom Signal in Uranium keeps a list of weak references to its
@@ -112,3 +186,15 @@ class Blender(Extension):
                 subprocess.Popen((BLENDReader.blender_path, BLENDReader.global_path), shell = True)
         elif action == 'Ignore':
             message.hide()
+        elif action == 'TEST':
+            Logger.log('d', 'TESTTEST')
+            # fs_watcher = QFileSystemWatcher()
+            # #fs_watcher.fileChanged.connect(fs_watcher, QtCore.Signal('fileChanged(QString)'), self.file_changed)
+            # fs_watcher.fileChanged.connect(self.file_changed)
+            # fs_watcher.addPath(BLENDReader.global_path)
+            # Logger.log('d', fs_watcher)
+
+
+    # #@QtCore.pyqtSlot(str)
+    # def file_changed(self, path):
+    #     Logger.log('d', 'FILE CHANGE TEST')
