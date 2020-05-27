@@ -118,10 +118,10 @@ class Blender(Extension):
 
     #@pyqtSlot()
     def reloadFile(self):
-        Logger.log('i', 'Reload File is currently under development.')
-        message = self.getMessage('Work in Progress', 'Reload Object is not implemented yet.')
+        Logger.log('i', 'File Reloaded - Ready for F5')
+        message = self.getMessage('Reloaded File', 'Press F5 to reload your file.')
         message.show()
-        Logger.log("i", "Clearing scene")
+#        Logger.log("i", "Clearing scene")
 #        scene = Application.getInstance().getController().getScene()
 #        nodes = []
 #        new_node = BLENDReader.BLENDReader.read(BLENDReader.BLENDReader(), BLENDReader.global_path)
@@ -153,8 +153,8 @@ class Blender(Extension):
 #            op.push()
             #from UM.Scene.Selection import Selection
 #            Selection.clear()
+        BLENDReader.message_flag = True
         BLENDReader.BLENDReader.read(BLENDReader.BLENDReader(), BLENDReader.global_path)
-        Logger.log('d', 'TESTTEST')
 
 
     def checkWaterproof(self):

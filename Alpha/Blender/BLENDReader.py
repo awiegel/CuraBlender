@@ -17,9 +17,10 @@ from UM.i18n import i18nCatalog
 
 i18n_catalog = i18nCatalog('uranium')
 
-global global_path, blender_path
+global global_path, blender_path, message_flag
 global_path = None
 blender_path = None
+message_flag = None
 
 
 class BLENDReader(MeshReader):
@@ -51,6 +52,7 @@ class BLENDReader(MeshReader):
 
 
     def _calculateAndSetScale(self, node):
+        global message_flag
         bounding_box = node.getBoundingBox()
         width = bounding_box.width
         height = bounding_box.height
@@ -75,7 +77,9 @@ class BLENDReader(MeshReader):
             message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'),
                           '[no_icon]', '[no_description]', button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
             message.actionTriggered.connect(self._openBlenderTrigger)
-            message.show()
+            if not message_flag:
+                message.show()
+            message_flag = None
 
         node.scale(scale = Vector(scale_factor,scale_factor,scale_factor))
 
