@@ -102,7 +102,8 @@ class Blender(Extension):
         scale_factor = (size / max(width, height, depth))
 
         if((scale_factor * min(width, height, depth)) < 5):
-            scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
+            if not min(width, height, depth) == 0:
+                scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
         if((scale_factor * height) > 290):
             scale_factor = scale_factor * (290 / (scale_factor * height))
         if((scale_factor * width) > 170 or (scale_factor * depth) > 170):

@@ -62,8 +62,9 @@ class BLENDReader(MeshReader):
         message = None
 
         if((min(width, height, depth)) < 5):
-            scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
-            message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too small'))
+            if not min(width, height, depth) == 0:
+                scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
+                message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too small'))
         if((scale_factor * height) > 290):
             scale_factor = scale_factor * (290 / (scale_factor * height))
             message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too high'))
