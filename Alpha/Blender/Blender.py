@@ -107,7 +107,7 @@ class Blender(Extension):
         if((scale_factor * height) > 290):
             scale_factor = scale_factor * (290 / (scale_factor * height))
         if((scale_factor * width) > 170 or (scale_factor * depth) > 170):
-            scale_factor = scale_factor * (170 / (scale_factor * width))
+            scale_factor = scale_factor * (170 / (scale_factor * max(width, depth)))
 
         node.scale(scale = Vector(scale_factor,scale_factor,scale_factor))
 
