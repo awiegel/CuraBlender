@@ -45,9 +45,11 @@ class BLENDReader(MeshReader):
         temp_path = self._convertFile(blender_path, file_path)
         data = self._openFile(temp_path)
 
-        self._calculateAndSetScale(data)
-        #Application.getInstance().getController().getScene().addWatchedFile(global_path)
+        data.getMeshData()._file_name = file_path
+        Application.getInstance().getController().getScene().removeWatchedFile(temp_path)
+        Application.getInstance().getController().getScene().addWatchedFile(file_path)
 
+        self._calculateAndSetScale(data)
         return data
 
 
@@ -157,5 +159,5 @@ class BLENDReader(MeshReader):
     def _openFile(self, temp_path):
         reader = Application.getInstance().getMeshFileHandler().getReaderForFile(temp_path)
         data = reader.read(temp_path)
-        #os.remove(temp_path)
+        os.remove(temp_path)
         return data
