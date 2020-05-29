@@ -39,6 +39,7 @@ class Blender(Extension):
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Scale Size'), self.scaleSize)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Check Waterproof'), self.checkWaterproof)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Reload Object'), self.reloadFile)
+        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'File Extension'), self.file_extension)
 
         #BLENDReader.global_path = None
         #BLENDReader.blender_path = None
@@ -56,6 +57,30 @@ class Blender(Extension):
             subprocess.Popen(BLENDReader.blender_path, shell = True)
         else:
             subprocess.Popen((BLENDReader.blender_path, BLENDReader.global_path), shell = True)
+
+    def file_extension(self):
+        message = self.getMessage('File Extension', 'Choose your File Extension.')
+        message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'),
+                          '[no_icon]', '[no_description]')
+        message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'),
+                          '[no_icon]', '[no_description]')
+        message.addAction('x3d', i18n_catalog.i18nc('@action:button', 'x3d'),
+                          '[no_icon]', '[no_description]')
+        message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'),
+                          '[no_icon]', '[no_description]')
+        message.actionTriggered.connect(self._fileExtensionTrigger)
+        message.show()
+
+
+    def _fileExtensionTrigger(self, message, action):
+        if action == 'stl':
+            BLENDReader.file_extension = 'stl'
+        elif action == 'ply':
+            BLENDReader.file_extension = 'ply'
+        elif action == 'x3d':
+            BLENDReader.file_extension = 'x3d'
+        elif action == 'obj':
+            BLENDReader.file_extension = 'obj'
 
 
     def scaleSize(self):

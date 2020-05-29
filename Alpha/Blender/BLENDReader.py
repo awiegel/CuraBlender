@@ -17,11 +17,11 @@ from UM.i18n import i18nCatalog
 
 i18n_catalog = i18nCatalog('uranium')
 
-global global_path, blender_path, message_flag
+global global_path, blender_path, message_flag, file_extension
 global_path = None
 blender_path = None
 message_flag = None
-
+file_extension = 'stl'
 
 class BLENDReader(MeshReader):
     def __init__(self) -> None:
@@ -139,7 +139,13 @@ class BLENDReader(MeshReader):
 
 
     def _convertFile(self, blender_path, file_path):
-        temp_path = os.path.dirname(file_path) + '/temp.stl'
+        #global file_extension
+        temp_path = '{}/temp.{}'.format(os.path.dirname(file_path), file_extension)
+        if file_extension == 'stl' or file_extension == 'ply':
+            export = 'bpy.ops.export_mesh.{}(filepath = "{}", check_existing = False)'.format(file_extension, temp_path)
+        elif file_extension == 'obj' or file_extension == 'x3d':
+            export = 'bpy.ops.export_scene.{}(filepath = "{}", check_existing = False)'.format(file_extension, temp_path)
+
         command = (
             blender_path,
             file_path,
@@ -147,10 +153,10 @@ class BLENDReader(MeshReader):
             '--python-expr',
             'import bpy;'
             'import sys;'
-            'temp_path = sys.argv[-1];'
-            'bpy.ops.export_mesh.stl(filepath = temp_path, check_existing = False)',    # global_scale = 10
-            '--', temp_path
+            'exec(sys.argv[-1])',
+            '--', export
         )
+
         subprocess.run(command, shell = True)
         return temp_path
 
