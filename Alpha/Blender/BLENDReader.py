@@ -151,8 +151,7 @@ class BLENDReader(MeshReader):
             'bpy.ops.export_mesh.stl(filepath = temp_path, check_existing = False)',    # global_scale = 10
             '--', temp_path
         )
-        command = subprocess.Popen(command, shell = True)
-        command.wait()
+        subprocess.run(command, shell = True)
         return temp_path
 
 
