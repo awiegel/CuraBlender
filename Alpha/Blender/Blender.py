@@ -1,65 +1,151 @@
 import subprocess
+import os.path
+import platform
+import glob
 
 from UM.Logger import Logger
 from UM.Message import Message
 from UM.Extension import Extension
+from UM.Scene.Selection import Selection
+from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
 from UM.Application import Application
+from cura.Scene.CuraSceneNode import CuraSceneNode
 from UM.i18n import i18nCatalog
 
-from PyQt5.QtCore import QUrl
+from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtCore import QUrl
 
 from . import BLENDReader
 
-#from UM.Operations.GroupedOperation import GroupedOperation
-#from UM.Scene.Selection import Selection
-from UM.Scene.SceneNode import SceneNode
-from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
-#from UM.Operations.RemoveSceneNodeOperation import RemoveSceneNodeOperation
-#from UM.Operations.AddSceneNodeOperation import AddSceneNodeOperation
-
-from UM.Math.Vector import Vector
-from cura.Scene.CuraSceneNode import CuraSceneNode
-
-# from PyQt5.QtCore import QFileSystemWatcher  # To watch files for changes.
-#from PyQt5 import QtCore
-# from UM.Signal import Signal, signalemitter
-#from PyQt5.QtCore import Signal
-
 i18n_catalog = i18nCatalog('uranium')
 
-# @signalemitter
+
+global blender_path, file_extension
+blender_path = None
+file_extension = 'stl'
+
+
 class Blender(Extension):
+    global blender_path
     def __init__(self):
         super().__init__()
         self._supported_extensions = ['.blend']
-        self._namespaces = {}   # type: Dict[str, str]
+
         self.setMenuName(i18n_catalog.i18nc('@item:inmenu', 'Blender'))
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Open in Blender'), self.openInBlender)
-        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Scale Size'), self.scaleSize)
-        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Check Waterproof'), self.checkWaterproof)
-        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Reload Object'), self.reloadFile)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'File Extension'), self.file_extension)
 
-        #BLENDReader.global_path = None
-        #BLENDReader.blender_path = None
+
+    #@staticmethod
+    #def getBlenderPath():
+    #    return blender_path
 
 
-    def getMessage(self, title, text):
-        message = Message(text=i18n_catalog.i18nc('@info', text), title=i18n_catalog.i18nc('@info:title', title))
-        return message
+    @classmethod
+    def setBlenderPath(self):
+        global blender_path
+        system = platform.system()
+        if system == 'Windows':
+            temp_blender_path = glob.glob('C:/Program Files/Blender Foundation/**/*.exe')
+            blender_path = ''.join(temp_blender_path).replace('\\', '/')
+            # blender_path = 'test'
+        elif system == 'Darwin':
+            blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
+        elif system == 'Linux':
+            blender_path = '/usr/share/blender/2.82/blender'
+        else:
+            blender_path = None
+
+        if not os.path.exists(blender_path):
+            blender_path = self._openFileDialog(blender_path, system)
+
+
+    @classmethod
+    def _openFileDialog(self, blender_path, system):
+        message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually'), title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
+        message._lifetime = 10
+        message.show()
+
+        dialog = QFileDialog()
+        dialog.setAcceptMode(QFileDialog.AcceptOpen)
+        if system == 'Windows':
+            dialog.setDirectory('C:/Program Files')
+            dialog.setNameFilters(["Blender (*.exe)"])
+        elif system == 'Darwin':
+            dialog.setDirectory('/Applications')
+            dialog.setNameFilters(["Blender (*.app)"])
+        elif system == 'Linux':
+            dialog.setDirectory('/usr/share')
+        else:
+            dialog.setDirectory('')
+
+        dialog.setFileMode(QFileDialog.ExistingFile)
+        dialog.setViewMode(QFileDialog.Detail)
+        if dialog.exec_():
+            message.hide()
+        blender_path = ''.join(dialog.selectedFiles())
+        return blender_path
 
 
     def openInBlender(self):
-        if BLENDReader.blender_path is None:
-            QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
-        elif BLENDReader.global_path is None:
-            subprocess.Popen(BLENDReader.blender_path, shell = True)
+        if len(Selection.getAllSelectedObjects()) == 0:
+            message = Message(text=i18n_catalog.i18nc('@info','Select Object first'), title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
+            message._lifetime = 10
+            message.show()
         else:
-            subprocess.Popen((BLENDReader.blender_path, BLENDReader.global_path), shell = True)
+            for selection in Selection.getAllSelectedObjects():
+                file_path = selection.getMeshData().getFileName()
+                self.openBlender(file_path)
+
+
+    def openBlender(self, file_path):
+        if blender_path is None:
+            QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
+        else:
+            current_file_extension = os.path.basename(file_path).partition('.')[2]
+
+            if current_file_extension == 'blend':
+                subprocess.run((blender_path, file_path), shell = True)
+            else:
+                execute_list = 'bpy.data.objects.remove(bpy.data.objects["Cube"]);'
+                if current_file_extension == 'stl' or current_file_extension == 'ply':
+                    execute_list = execute_list + 'bpy.ops.import_mesh.{}(filepath = "{}");'.format(current_file_extension, file_path)
+                elif current_file_extension == 'obj' or current_file_extension == 'x3d':
+                    execute_list = execute_list + 'bpy.ops.import_scene.{}(filepath = "{}");'.format(current_file_extension, file_path)
+                else:
+                    export_file = None
+
+                export_file = '{}/cura_temp.blend'.format(os.path.dirname(file_path))
+
+                execute_list = execute_list + 'bpy.ops.wm.save_as_mainfile(filepath = "{}")'.format(export_file)
+                Logger.log('d', execute_list)
+                Logger.log('d', export_file)
+                command = (
+                    blender_path,
+                    '--background',
+                    '--python-expr',
+                    'import bpy;'
+                    'import sys;'
+                    'exec(sys.argv[-1])',
+                    '--', execute_list
+                )
+                subprocess.run(command, shell = True)
+
+                subprocess.run((blender_path, export_file), shell = True)
+                os.remove(export_file)
+
+
+    def _openBlenderTrigger(self, message, action):
+        if action == 'Open in Blender':
+            self.openInBlender()
+        elif action == 'Ignore':
+            message.hide()
+
 
     def file_extension(self):
-        message = self.getMessage('File Extension', 'Choose your File Extension.')
+        message = Message(text=i18n_catalog.i18nc('@info','File Extension'), title=i18n_catalog.i18nc('@info:title', 'Choose your File Extension.'))
+        message._lifetime = 15
         message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'),
                           '[no_icon]', '[no_description]')
         message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'),
@@ -73,154 +159,12 @@ class Blender(Extension):
 
 
     def _fileExtensionTrigger(self, message, action):
+        global file_extension
         if action == 'stl':
-            BLENDReader.file_extension = 'stl'
+            file_extension = 'stl'
         elif action == 'ply':
-            BLENDReader.file_extension = 'ply'
+            file_extension = 'ply'
         elif action == 'x3d':
-            BLENDReader.file_extension = 'x3d'
+            file_extension = 'x3d'
         elif action == 'obj':
-            BLENDReader.file_extension = 'obj'
-
-
-    def scaleSize(self):
-        Logger.log('i', 'Scale Size is currently under development.')
-        message = self.getMessage('Scale Size', 'Choose your Size.')
-        message.addAction('MAXIMUM', i18n_catalog.i18nc('@action:button', 'MAXIMUM'),
-                          '[no_icon]', '[no_description]')
-        message.addAction('AVERAGE', i18n_catalog.i18nc('@action:button', 'AVERAGE'),
-                          '[no_icon]', '[no_description]', button_style=Message.ActionButtonStyle.SECONDARY)
-        message.addAction('MINIMUM', i18n_catalog.i18nc('@action:button', 'MINIMUM'),
-                          '[no_icon]', '[no_description]')
-        message.actionTriggered.connect(self._scaleTrigger)
-        message.show()
-
-
-    def _scaleTrigger(self, message, action):
-        '''Callback function for the 'download' button on the update notification.
-
-        This function is here is because the custom Signal in Uranium keeps a list of weak references to its
-        connections, so the callback functions need to be long-lived. The Blender is short-lived so
-        this function cannot be there.
-        '''
-        if action == 'MAXIMUM':
-            for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
-                if isinstance(node, CuraSceneNode):
-                    Logger.log('d', node.getParent().getBoundingBox())
-                    self.calculateAndSetScale(node, 290)
-        elif action == 'AVERAGE':
-            for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
-                if isinstance(node, CuraSceneNode):
-                    self.calculateAndSetScale(node, 100)
-        elif action == 'MINIMUM':
-            for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
-                if isinstance(node, CuraSceneNode):
-                    self.calculateAndSetScale(node, 5)
-
-
-    def calculateAndSetScale(self, node, size):
-        bounding_box = node.getBoundingBox()
-        width = bounding_box.width
-        height = bounding_box.height
-        depth = bounding_box.depth
-
-        scale_factor = (size / max(width, height, depth))
-
-        if((scale_factor * min(width, height, depth)) < 5):
-            if not min(width, height, depth) == 0:
-                scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
-        if((scale_factor * height) > 290):
-            scale_factor = scale_factor * (290 / (scale_factor * height))
-        if((scale_factor * width) > 170 or (scale_factor * depth) > 170):
-            scale_factor = scale_factor * (170 / (scale_factor * max(width, depth)))
-
-        node.scale(scale = Vector(scale_factor,scale_factor,scale_factor))
-
-        if not Vector(scale_factor,scale_factor,scale_factor) == Vector(1,1,1):
-            Logger.log('i', 'Scaling Node with factor %s', scale_factor)
-            Logger.log('i', 'Before: (width: %s, height: %s, depth: %s', width, height, depth)
-            Logger.log('i', 'After: (width: %s, height: %s, depth: %s', (width * scale_factor), (height * scale_factor), (depth * scale_factor))
-
-
-    #@pyqtSlot()
-    def reloadFile(self):
-        Logger.log('i', 'File Reloaded - Ready for F5')
-        message = self.getMessage('Reloaded File', 'Press F5 to reload your file.')
-        message.show()
-#        Logger.log("i", "Clearing scene")
-#        scene = Application.getInstance().getController().getScene()
-#        nodes = []
-#        new_node = BLENDReader.BLENDReader.read(BLENDReader.BLENDReader(), BLENDReader.global_path)
-
-#        new_node.setSelectable(True)
-        
-#        for node in DepthFirstIterator(scene.getRoot()):
-#            if not node.isEnabled():
-#                continue
-#            if not node.getMeshData() and not node.callDecoration("isGroup"):
-#                continue  # Node that doesnt have a mesh and is not a group.
-            #if only_selectable and not node.isSelectable():
-            #    continue  # Only remove nodes that are selectable.
-            #if node.getParent() and cast(SceneNode, node.getParent()).callDecoration("isGroup"):
-            #    continue  # Grouped nodes don't need resetting as their parent (the group) is resetted)
-#            nodes.append(node)
-#        if nodes:
-            #from UM.Operations.GroupedOperation import GroupedOperation
-#            op = GroupedOperation()
-
-#            for node in nodes:
-                #from UM.Operations.RemoveSceneNodeOperation import RemoveSceneNodeOperation
-#                op.addOperation(RemoveSceneNodeOperation(node))
-#                op.addOperation(AddSceneNodeOperation(new_node, scene.getRoot()))
-
-                # Reset the print information
-#                scene.sceneChanged.emit(node)
-
-#            op.push()
-            #from UM.Scene.Selection import Selection
-#            Selection.clear()
-        BLENDReader.message_flag = True
-        BLENDReader.BLENDReader.read(BLENDReader.BLENDReader(), BLENDReader.global_path)
-
-
-    def checkWaterproof(self):
-        Logger.log('i', 'Check Waterproof is currently under development.')
-        message = self.getMessage('Check Waterproof!', 'Your Object is not waterproof! You can fix it directly in Blender ;)')
-        message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'),
-                          '[no_icon]', '[no_description]', button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-        message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'),
-                          '[no_icon]', '[no_description]', button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
-        message.addAction('TEST', i18n_catalog.i18nc('@action:button', 'TEST'),
-                          '[no_icon]', '[no_description]')
-        message.actionTriggered.connect(self._waterproofTrigger)
-        message.show()
-
-
-    def _waterproofTrigger(self, message, action):
-        '''Callback function for the 'download' button on the update notification.
-
-        This function is here is because the custom Signal in Uranium keeps a list of weak references to its
-        connections, so the callback functions need to be long-lived. The Blender is short-lived so
-        this function cannot be there.
-        '''
-        if action == 'Open in Blender':
-            if BLENDReader.blender_path is None:
-                QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
-            elif BLENDReader.global_path is None:
-                subprocess.Popen(BLENDReader.blender_path, shell = True)
-            else:
-                subprocess.Popen((BLENDReader.blender_path, BLENDReader.global_path), shell = True)
-        elif action == 'Ignore':
-            message.hide()
-        elif action == 'TEST':
-            Logger.log('d', 'TESTTEST')
-            # fs_watcher = QFileSystemWatcher()
-            # #fs_watcher.fileChanged.connect(fs_watcher, QtCore.Signal('fileChanged(QString)'), self.file_changed)
-            # fs_watcher.fileChanged.connect(self.file_changed)
-            # fs_watcher.addPath(BLENDReader.global_path)
-            # Logger.log('d', fs_watcher)
-
-
-    # #@QtCore.pyqtSlot(str)
-    # def file_changed(self, path):
-    #     Logger.log('d', 'FILE CHANGE TEST')
+            file_extension = 'obj'
