@@ -90,13 +90,13 @@ class Blender(Extension):
 
     def openInBlender(self):
         if len(Selection.getAllSelectedObjects()) == 0:
-            message = Message(text=i18n_catalog.i18nc('@info','Select Object first'), title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
-            message._lifetime = 10
-            message.show()
+           message = Message(text=i18n_catalog.i18nc('@info','Select Object first'), title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
+           message._lifetime = 10
+           message.show()
         else:
-            for selection in Selection.getAllSelectedObjects():
-                file_path = selection.getMeshData().getFileName()
-                self.openBlender(file_path)
+           for selection in Selection.getAllSelectedObjects():
+               file_path = selection.getMeshData().getFileName()
+               self.openBlender(file_path)
 
 
     def openBlender(self, file_path):
