@@ -26,6 +26,7 @@ class BLENDReader(MeshReader):
     def __init__(self) -> None:
         super().__init__()
         self._supported_extensions = ['.blend']
+        self._curasplit = False
 
 
     # Main entry point
@@ -42,9 +43,11 @@ class BLENDReader(MeshReader):
 
         self._changeWatchedFile(temp_path, file_path)
 
-        self._calculateAndSetScale(nodes)
+        if not self._curasplit:
+            self._calculateAndSetScale(nodes)
 
         return nodes
+
 
     def _changeWatchedFile(self, old_path, new_path):
         Application.getInstance().getController().getScene().removeWatchedFile(old_path)
@@ -52,14 +55,15 @@ class BLENDReader(MeshReader):
 
 
     def _calculateAndSetScale(self, nodes):
+        scale_factors = []
         for node in nodes:
             bounding_box = node.getBoundingBox()
             width = bounding_box.width
             height = bounding_box.height
             depth = bounding_box.depth
 
-            scale_factor = 1
             message = None
+            scale_factor = 1
 
             if((min(width, height, depth)) < 5):
                 if not min(width, height, depth) == 0:
@@ -92,9 +96,13 @@ class BLENDReader(MeshReader):
             else:
                 None
 
+            scale_factors.append(scale_factor)
+
+        scale_factor = sum(scale_factors) / len(scale_factors)
+        for node in nodes:
             node.scale(scale = Vector(scale_factor,scale_factor,scale_factor))
 
-        if message and 'self._curasplit' not in locals():
+        if message:
             message._lifetime = 10
             message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'),
                           '[no_icon]', '[no_description]', button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
