@@ -4,6 +4,7 @@ import os.path
 import os
 import glob
 import subprocess
+from subprocess import PIPE
 
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtCore import QTimer, QUrl
@@ -25,23 +26,16 @@ class BLENDReader(MeshReader):
     def __init__(self) -> None:
         super().__init__()
         self._supported_extensions = ['.blend']
-        if not Blender.blender_path:
-            Blender.Blender.setBlenderPath()
-        #self._file_path = None
-    
-    #def __exit__(self, exc_type, exc_value, traceback):
-    #    BLENDReader.read(BLENDReader(), self._file_path)
+
 
     # Main entry point
     # Reads the file, returns a SceneNode (possibly with nested ones), or None
     def read(self, file_path):
+        if not Blender.blender_path:
+            Blender.Blender.setBlenderPath()
+
         nodes = []
         temp_path = self._convertAndOpenFile(file_path, nodes)
-        #nodes = self._openFile(temp_path)
-
-        for node in nodes:
-            node.getMeshData()._file_name = file_path
-            #Logger.log('d', getattr(nodes, atr))
 
         self._file_path = file_path
         #self._blender_path = Blender.blender_path
@@ -100,55 +94,87 @@ class BLENDReader(MeshReader):
                 subprocess.run((Blender.blender_path, self._file_path), shell = True)
         elif action == 'Ignore':
             message.hide()
+        else:
+            None
 
 
-    def _convertAndOpenFile(self, file_path, nodes):  
-        temp_path = '{}/cura_temp.{}'.format(os.path.dirname(file_path), Blender.file_extension)
-        import_file = self._importFile(temp_path)
+    def _convertAndOpenFile(self, file_path, nodes):
+        if '_curasplit_' not in file_path:
 
-        command = (
-            Blender.blender_path,
-            file_path,
-            '--background',
-            '--python-expr',
-            'import bpy;'
-            'print(len(bpy.data.objects))'
-        )
-        from subprocess import PIPE
-        objects = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
-        objects = int(objects.stdout.splitlines()[4])
-        if objects <= 3:
+            command = self.buildCommand(file_path, 'Count nodes')
+            objects = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
+            objects = int(objects.stdout.splitlines()[4])
+
+            temp_path = '{}/cura_temp.{}'.format(os.path.dirname(file_path), Blender.file_extension)
+            import_file = self._importFile(temp_path)
+
+            if objects <= 1:
+                command = self.buildCommand(file_path, 'Single node', import_file)
+                subprocess.run(command, shell = True)
+
+                node = self._openFile(temp_path, nodes)
+
+                node.getMeshData()._file_name = file_path
+                nodes.append(node)
+            else:
+                for node in range(objects):
+                    index = str(node)
+
+                    command = self.buildCommand(file_path, 'Multiple nodes', import_file, index)
+                    subprocess.run(command, shell = True)
+
+                    node = self._openFile(temp_path, nodes)
+                    node.getMeshData()._file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], int(index) + 1)
+                    nodes.append(node)
+
+        else:
+            index = int(file_path[file_path.index('_curasplit_') + 11:][:-6]) - 1
+            file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+
+            temp_path = '{}/cura_temp_{}.{}'.format(os.path.dirname(file_path), index + 1, Blender.file_extension)
+            import_file = self._importFile(temp_path)
+
+            command = self.buildCommand(file_path, 'Multiple nodes', import_file, str(index))
+            subprocess.run(command, shell = True)
+
+            node = self._openFile(temp_path, nodes)
+            node.getMeshData()._file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], index + 1)
+            nodes.append(node)
+
+        return temp_path
+
+
+    @classmethod
+    def buildCommand(self, file_path, program, instruction = None, index = None, background = True):
+        if not 'self._script_path' in locals():
+            self._script_path = '{}/plugins/Blender/BlenderAPI.py'.format(os.getcwd())
+
+        if background == True:
             command = (
                 Blender.blender_path,
                 file_path,
                 '--background',
-                '--python-expr',
-                'import bpy;'
-                'import sys;'
-                'exec(sys.argv[-1])',
-                '--', import_file
+                '--python',
+                self._script_path,
+                '--', program
             )
-            subprocess.run(command, shell = True)
-            #nodes.append(self._openFile(temp_path, nodes))
-            self._openFile(temp_path, nodes)
         else:
-            script_path = '{}/plugins/Blender/BlenderAPI.py'.format(os.getcwd())
-            objects = objects - 2
-            for node in range(objects):
-                index = str(node)
-                command = (
-                    Blender.blender_path,
-                    file_path,
-                    '--background',
-                    '--python',
-                    script_path,
-                    '--', import_file, index
-                )
-                subprocess.run(command, shell = True)
+            command = (
+                Blender.blender_path,
+                file_path,
+                '--python',
+                self._script_path,
+                '--', program
+            )
 
-                self._openFile(temp_path, nodes)
+        if instruction and not index:
+            command = command[:-1] + (instruction,) + command[-1:]
+        elif index:
+            command = command[:-1] + (instruction,) + (index,) + command[-1:]
+        else:
+            None
 
-        return temp_path
+        return command
 
 
     def _importFile(self, file_path):
@@ -164,7 +190,6 @@ class BLENDReader(MeshReader):
 
     def _openFile(self, temp_path, nodes):
         reader = Application.getInstance().getMeshFileHandler().getReaderForFile(temp_path)
-        #nodes = reader.read(temp_path)
-        nodes.append(reader.read(temp_path))
+        node = reader.read(temp_path)
         os.remove(temp_path)
-        #return nodes
+        return node
