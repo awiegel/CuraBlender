@@ -106,7 +106,16 @@ class Blender(Extension):
             current_file_extension = os.path.basename(file_path).partition('.')[2]
 
             if current_file_extension == 'blend':
-                subprocess.run((blender_path, file_path), shell = True)
+                if '_curasplit_' not in file_path:
+                    subprocess.run((blender_path, file_path), shell = True)
+                else:
+                    index = int(file_path[file_path.index('_curasplit_') + 11:][:-6]) - 1
+                    file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+                    open_file = 'bpy.ops.wm.open_mainfile()'
+
+                    command = BLENDReader.BLENDReader.buildCommand(file_path, 'Multiple nodes', open_file, str(index), background = False)
+                    subprocess.run(command, shell = True)
+
             else:
                 execute_list = 'bpy.data.objects.remove(bpy.data.objects["Cube"]);'
                 if current_file_extension == 'stl' or current_file_extension == 'ply':
@@ -141,6 +150,8 @@ class Blender(Extension):
             self.openInBlender()
         elif action == 'Ignore':
             message.hide()
+        else:
+            None
 
 
     def file_extension(self):
@@ -168,3 +179,5 @@ class Blender(Extension):
             file_extension = 'x3d'
         elif action == 'obj':
             file_extension = 'obj'
+        else:
+            None
