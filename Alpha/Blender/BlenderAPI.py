@@ -17,14 +17,21 @@ def main():
         index = int(sys.argv[-2])
         nodes = []
 
-        for node in range(len(bpy.data.objects)):
+        node = 0
+        objects = len(bpy.data.objects)
+        while node < objects:
             if bpy.data.objects[node].name != "Camera" and bpy.data.objects[node].name != "Light":
                 nodes.append(bpy.data.objects[node])
+            else:
+                bpy.data.objects.remove(bpy.data.objects[node])
+                node -= 1
+                objects -= 1
+            node += 1
 
         for node in range(len(nodes)):
             if node != index:
                 bpy.data.objects.remove(nodes[node])
-                # bpy.context.collection.objects.unlink(nodes[node])
+
         exec(sys.argv[-3])
     else:
         None
