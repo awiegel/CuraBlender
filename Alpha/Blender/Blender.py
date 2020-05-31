@@ -93,10 +93,25 @@ class Blender(Extension):
            message = Message(text=i18n_catalog.i18nc('@info','Select Object first'), title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
            message._lifetime = 10
            message.show()
+        elif len(Selection.getAllSelectedObjects()) == 1:
+            for selection in Selection.getAllSelectedObjects():
+                file_path = selection.getMeshData().getFileName()
+                if '_curasplit_' in file_path:
+                    file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+                self.openBlender(file_path)
         else:
-           for selection in Selection.getAllSelectedObjects():
-               file_path = selection.getMeshData().getFileName()
-               self.openBlender(file_path)
+            files = set()
+            for selection in Selection.getAllSelectedObjects():
+                file_path = selection.getMeshData().getFileName()
+                if '_curasplit_' in file_path:
+                    file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+                files.add(file_path)
+            if len(files) == 1:
+                self.openBlender(file_path)
+            else:
+                message = Message(text=i18n_catalog.i18nc('@info','Please rethink your selection.'), title=i18n_catalog.i18nc('@info:title', 'Select only objects from same file'))
+                message._lifetime = 10
+                message.show()
 
 
     def openBlender(self, file_path):
@@ -106,15 +121,9 @@ class Blender(Extension):
             current_file_extension = os.path.basename(file_path).partition('.')[2]
 
             if current_file_extension == 'blend':
-                if '_curasplit_' not in file_path:
-                    subprocess.run((blender_path, file_path), shell = True)
-                else:
-                    index = int(file_path[file_path.index('_curasplit_') + 11:][:-6]) - 1
+                if '_curasplit_' in file_path:
                     file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-                    open_file = 'bpy.ops.wm.open_mainfile()'
-
-                    command = BLENDReader.BLENDReader.buildCommand(file_path, 'Multiple nodes', open_file, str(index), background = False)
-                    subprocess.run(command, shell = True)
+                subprocess.run((blender_path, file_path), shell = True)
 
             else:
                 execute_list = 'bpy.data.objects.remove(bpy.data.objects["Cube"]);'
@@ -126,10 +135,8 @@ class Blender(Extension):
                     export_file = None
 
                 export_file = '{}/cura_temp.blend'.format(os.path.dirname(file_path))
-
                 execute_list = execute_list + 'bpy.ops.wm.save_as_mainfile(filepath = "{}")'.format(export_file)
-                Logger.log('d', execute_list)
-                Logger.log('d', export_file)
+
                 command = (
                     blender_path,
                     '--background',
