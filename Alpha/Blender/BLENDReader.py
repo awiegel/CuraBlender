@@ -65,16 +65,36 @@ class BLENDReader(MeshReader):
                 if not min(width, height, depth) == 0:
                     scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
                     message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too small'))
-            if(scale_factor * height) > (290 / len(nodes)):
-                scale_factor = scale_factor * ((290 / len(nodes)) / (scale_factor * height))
+            if(scale_factor * height) > 290:
+                scale_factor = scale_factor * (290 / (scale_factor * height))
                 message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too high'))
-            if((scale_factor * width) > (170 / len(nodes))) or ((scale_factor * depth) > (170 / len(nodes))):
-                scale_factor = scale_factor * ((170 / len(nodes)) / (scale_factor * max(width, depth)))
-                message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too broad and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too broad'))
-        
+
+            if len(nodes) == 1:
+                if((scale_factor * width) > 170) or ((scale_factor * depth) > 170):
+                    scale_factor = scale_factor * (170 / (scale_factor * max(width, depth)))
+                    message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too broad and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too broad'))
+            elif len(nodes) <= 9:
+                if((scale_factor * width) > (170 / 3)) or ((scale_factor * depth) > (170 / 3)):
+                    scale_factor = scale_factor * ((170 / 3) / (scale_factor * max(width, depth)))
+                    message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+            elif len(nodes) <= 25:
+                if((scale_factor * width) > (170 / 5)) or ((scale_factor * depth) > (170 / 5)):
+                    scale_factor = scale_factor * ((170 / 5) / (scale_factor * max(width, depth)))
+                    message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+            elif len(nodes) <= 49:
+                if((scale_factor * width) > (170 / 7)) or ((scale_factor * depth) > (170 / 7)):
+                    scale_factor = scale_factor * ((170 / 7) / (scale_factor * max(width, depth)))
+                    message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+            elif len(nodes) <= 81:
+                if((scale_factor * width) > (170 / 9)) or ((scale_factor * depth) > (170 / 9)):
+                    scale_factor = scale_factor * ((170 / 9) / (scale_factor * max(width, depth)))
+                    message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+            else:
+                None
+
             node.scale(scale = Vector(scale_factor,scale_factor,scale_factor))
 
-        if message:
+        if message and 'self._curasplit' not in locals():
             message._lifetime = 10
             message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'),
                           '[no_icon]', '[no_description]', button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
@@ -128,6 +148,7 @@ class BLENDReader(MeshReader):
                     nodes.append(node)
 
         else:
+            self._curasplit = True
             index = int(file_path[file_path.index('_curasplit_') + 11:][:-6]) - 1
             file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
 
