@@ -45,6 +45,8 @@ class BLENDReader(MeshReader):
 
         if not self._curasplit:
             self._calculateAndSetScale(nodes)
+        else:
+            self._curasplit = False
 
         return nodes
 
