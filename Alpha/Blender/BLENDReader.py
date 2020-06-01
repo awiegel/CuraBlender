@@ -128,31 +128,32 @@ class BLENDReader(MeshReader):
 
     def _convertAndOpenFile(self, file_path, nodes):
         if '_curasplit_' not in file_path:
-
             command = self.buildCommand(file_path, 'Count nodes')
             objects = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
             objects = int(objects.stdout.splitlines()[4])
 
-            temp_path = '{}/cura_temp.{}'.format(os.path.dirname(file_path), Blender.file_extension)
-            import_file = self._importFile(temp_path)
-
             if objects <= 1:
+                temp_path = self._buildTempPath(file_path)
+                import_file = self._importFile(temp_path)
                 command = self.buildCommand(file_path, 'Single node', import_file)
                 subprocess.run(command, shell = True)
 
-                node = self._openFile(temp_path, nodes)
-
+                node = self._openFile(temp_path)
                 node.getMeshData()._file_name = file_path
                 nodes.append(node)
             else:
-                for node in range(objects):
-                    index = str(node)
-
-                    command = self.buildCommand(file_path, 'Multiple nodes', import_file, index)
-                    subprocess.run(command, shell = True)
-
-                    node = self._openFile(temp_path, nodes)
-                    node.getMeshData()._file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], int(index) + 1)
+                processes = []
+                for index in range(objects):
+                    temp_path = self._buildTempPath(file_path, index)
+                    import_file = self._importFile(temp_path)
+                    command = self.buildCommand(file_path, 'Multiple nodes', import_file, str(index))
+                    process = subprocess.Popen(command, shell = True)
+                    processes.append(process)
+                for (index, process) in zip(range(objects), processes):
+                    temp_path = self._buildTempPath(file_path, index)
+                    process.wait()
+                    node = self._openFile(temp_path)
+                    node.getMeshData()._file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], index + 1)
                     nodes.append(node)
 
         else:
@@ -160,18 +161,22 @@ class BLENDReader(MeshReader):
             index = int(file_path[file_path.index('_curasplit_') + 11:][:-6]) - 1
             file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
 
-            temp_path = '{}/cura_temp_{}.{}'.format(os.path.dirname(file_path), index + 1, Blender.file_extension)
+            temp_path = self._buildTempPath(file_path, index + 1)
             import_file = self._importFile(temp_path)
 
             command = self.buildCommand(file_path, 'Multiple nodes', import_file, str(index))
             subprocess.run(command, shell = True)
 
-            node = self._openFile(temp_path, nodes)
+            node = self._openFile(temp_path)
             node.getMeshData()._file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], index + 1)
             nodes.append(node)
 
         return temp_path
 
+
+    def _buildTempPath(self, file_path, index = None):
+        temp_path = '{}/cura_temp{}.{}'.format(os.path.dirname(file_path), index, Blender.file_extension)
+        return temp_path
 
     @classmethod
     def buildCommand(self, file_path, program, instruction = None, index = None, background = True):
@@ -217,7 +222,7 @@ class BLENDReader(MeshReader):
         return import_file
 
 
-    def _openFile(self, temp_path, nodes):
+    def _openFile(self, temp_path):
         reader = Application.getInstance().getMeshFileHandler().getReaderForFile(temp_path)
         node = reader.read(temp_path)
         os.remove(temp_path)
