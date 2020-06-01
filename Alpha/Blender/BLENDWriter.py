@@ -16,6 +16,8 @@ from cura.Scene.CuraSceneNode import CuraSceneNode
 i18n_catalog = i18nCatalog("cura")
 
 
+from . import Blender
+from . import BLENDReader
 
 class BLENDWriter(MeshWriter):
     def __init__(self):
@@ -24,19 +26,11 @@ class BLENDWriter(MeshWriter):
 
 
     # Main entry point
-    # Reads the file, returns a SceneNode (possibly with nested ones), or None
+    # Writes the file
     def write(self, stream, nodes, mode = MeshWriter.OutputMode.BinaryMode):
-        Logger.log('d', 'TEST')
-        Logger.log('d', stream)
-        Logger.log('d', stream.name)
-        Logger.log('d', nodes)
-        for node in nodes:
-            Logger.log('d', node)
-        #for atr in dir(stream):
-        #    Logger.log('d', '%s, %s',atr, getattr(stream, atr))
-        #Logger.log('d', nodes)
-        #for atr in dir(nodes):
-        #    Logger.log('d', '%s, %s',atr, getattr(nodes, atr))
+        if not Blender.blender_path:
+            Blender.Blender.setBlenderPath()
+
         file_list = []
 
         for node in nodes:
@@ -45,43 +39,35 @@ class BLENDWriter(MeshWriter):
                     file_list.append(children.getMeshData().getFileName())
                     Logger.log('d', file_list)
         
-        execute_list = 'bpy.data.objects.remove(bpy.data.objects["Cube"]);'
-        #temp_list.append('bpy.data.objects.remove(bpy.data.objects["Cube"])')
-        for x in file_list:
-            Logger.log('d', x)
-            if x.endswith('.stl'):
-                Logger.log('d', 'LOLOLOL')
-                execute_list = execute_list + 'bpy.ops.import_mesh.stl(filepath = "{}");'.format(x)
+        execute_list = ''
+        blender_files = ''
+        for file_path in file_list:
+            if file_path.endswith('.blend'):
+                if '_curasplit_1' in file_path:
+                    blender_files = blender_files + '{}.blend'.format(file_path[:file_path.index('_curasplit_')]) + ';'
+                elif '_curasplit_' not in file_path:
+                    blender_files = blender_files + file_path + ';'
+                else:
+                    None
+            elif file_path.endswith('.stl'):
+                execute_list = execute_list + 'bpy.ops.import_mesh.stl(filepath = "{}");'.format(file_path)
+            elif file_path.endswith('.ply'):
+                execute_list = execute_list + 'bpy.ops.import_mesh.ply(filepath = "{}");'.format(file_path)
+            elif file_path.endswith('.obj'):
+                execute_list = execute_list + 'bpy.ops.import_scene.obj(filepath = "{}");'.format(file_path)
+            elif file_path.endswith('.x3d'):
+                execute_list = execute_list + 'bpy.ops.import_scene.x3d(filepath = "{}");'.format(file_path)
+            else:
+                None
 
-        #temp_list.append('bpy.ops.wm.save_as_mainfile(filepath = "C:/Users/alex-/Documents/f.blend")')
-        execute_list = execute_list + 'bpy.ops.wm.save_as_mainfile(filepath = "C:/Users/alex-/Documents/f.blend")'
-        #stl_path
-        Logger.log('d', stream.name)
-        Logger.log('d', execute_list)
-        #blend_path = stream.name
-        blender_path = 'C:/Program Files/Blender Foundation/Blender 2.82/blender.exe'
+        self._script_path = '{}/plugins/Blender/BlenderAPI.py'.format(os.getcwd())
         command = (
-            blender_path,
+            Blender.blender_path,
             '--background',
-            '--python-expr',
-            'import bpy;'
-            'import sys;'
-            'exec(sys.argv[-1])',
-            '--', execute_list
+            '--python',
+            self._script_path,
+            '--', stream.name, execute_list, blender_files, 'Write'
         )
 
-        subprocess.run(command, shell = True)
-        #sys.exit()
-
-            #for atr in dir(node):
-            #    Logger.log('d', '%s, %s',atr, getattr(node, atr))
-            #Logger.log('d', node.getName())
-            #Logger.log('d', node.getAllChildren())
-                #Logger.log('d', x)
-                    #Logger.log('d', x.getName())
-                    #for atr in dir(x.getMeshData()):
-                    #    Logger.log('d', '%s, %s',atr, getattr(x.getMeshData(), atr))
-                    #for atr in dir(x.getChildren()):
-        #for atr in dir(nodes.getMeshData()):
-        #    Logger.log('d', '%s, %s',atr, getattr(nodes.getMeshData(), atr))
-
+        subprocess.Popen(command, shell = True)
+        return True
