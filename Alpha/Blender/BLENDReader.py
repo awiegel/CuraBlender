@@ -26,7 +26,6 @@ class BLENDReader(MeshReader):
     def __init__(self) -> None:
         super().__init__()
         self._supported_extensions = ['.blend']
-        self._curasplit = False
 
 
     # Main entry point
@@ -34,6 +33,8 @@ class BLENDReader(MeshReader):
     def read(self, file_path):
         if not Blender.blender_path:
             Blender.Blender.setBlenderPath()
+
+        self._curasplit = False
 
         nodes = []
         temp_path = self._convertAndOpenFile(file_path, nodes)
@@ -45,8 +46,6 @@ class BLENDReader(MeshReader):
 
         if not self._curasplit:
             self._calculateAndSetScale(nodes)
-        else:
-            self._curasplit = False
 
         return nodes
 
