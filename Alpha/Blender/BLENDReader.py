@@ -130,14 +130,14 @@ class BLENDReader(MeshReader):
 
     def _convertAndOpenFile(self, file_path, nodes):
         if '_curasplit_' not in file_path:
-            command = self.buildCommand(file_path, 'Count nodes')
+            command = self.buildCommand('Count nodes', file_path)
             objects = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
             objects = int(objects.stdout.splitlines()[4])
 
             if objects <= 1:
                 temp_path = self._buildTempPath(file_path)
                 import_file = self._importFile(temp_path)
-                command = self.buildCommand(file_path, 'Single node', import_file)
+                command = self.buildCommand('Single node', file_path, import_file)
                 subprocess.run(command, shell = True)
 
                 node = self._openFile(temp_path)
@@ -148,7 +148,8 @@ class BLENDReader(MeshReader):
                 for index in range(objects):
                     temp_path = self._buildTempPath(file_path, index)
                     import_file = self._importFile(temp_path)
-                    command = self.buildCommand(file_path, 'Multiple nodes', import_file, str(index))
+
+                    command = self.buildCommand('Multiple nodes', file_path, import_file, str(index))
                     process = subprocess.Popen(command, shell = True)
                     processes.append(process)
                 for (index, process) in zip(range(objects), processes):
@@ -166,7 +167,7 @@ class BLENDReader(MeshReader):
             temp_path = self._buildTempPath(file_path, index + 1)
             import_file = self._importFile(temp_path)
 
-            command = self.buildCommand(file_path, 'Multiple nodes', import_file, str(index))
+            command = self.buildCommand('Multiple nodes', file_path, import_file, str(index))
             subprocess.run(command, shell = True)
 
             node = self._openFile(temp_path)
@@ -181,11 +182,11 @@ class BLENDReader(MeshReader):
         return temp_path
 
     @classmethod
-    def buildCommand(self, file_path, program, instruction = None, index = None, background = True):
+    def buildCommand(self, program, file_path, instruction = None, index = None, background = True):
         if not 'self._script_path' in locals():
             self._script_path = '{}/plugins/Blender/BlenderAPI.py'.format(os.getcwd())
 
-        if background == True:
+        if program == 'Count nodes' or program == 'Single node':
             command = (
                 Blender.blender_path,
                 file_path,
@@ -194,21 +195,27 @@ class BLENDReader(MeshReader):
                 self._script_path,
                 '--', program
             )
+            if instruction:
+                command = command[:-1] + (instruction,) + command[-1:]
         else:
             command = (
                 Blender.blender_path,
-                file_path,
+                '--background',
                 '--python',
                 self._script_path,
-                '--', program
+                '--', instruction, index, file_path, program
             )
+            #command = command[:-2] + (instruction,) + (index,) + command[-2:]
 
-        if instruction and not index:
-            command = command[:-1] + (instruction,) + command[-1:]
-        elif index:
-            command = command[:-1] + (instruction,) + (index,) + command[-1:]
-        else:
-            None
+        if not background:
+            command = command[:1] + command[2:]
+
+        # if instruction and not index:
+        #     command = command[:-2] + (instruction,) + command[-2:]
+        # elif index:
+        #     command = command[:-2] + (instruction,) + (index,) + command[-2:]
+        # else:
+        #     None
 
         return command
 

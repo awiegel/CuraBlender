@@ -43,12 +43,7 @@ class BLENDWriter(MeshWriter):
         blender_files = ''
         for file_path in file_list:
             if file_path.endswith('.blend'):
-                if '_curasplit_1' in file_path:
-                    blender_files = blender_files + '{}.blend'.format(file_path[:file_path.index('_curasplit_')]) + ';'
-                elif '_curasplit_' not in file_path:
-                    blender_files = blender_files + file_path + ';'
-                else:
-                    None
+                blender_files = blender_files + file_path + ';'
             elif file_path.endswith('.stl'):
                 execute_list = execute_list + 'bpy.ops.import_mesh.stl(filepath = "{}");'.format(file_path)
             elif file_path.endswith('.ply'):
