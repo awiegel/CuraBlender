@@ -177,7 +177,11 @@ class BLENDReader(MeshReader):
 
 
     def _buildTempPath(self, file_path, index = None):
-        temp_path = '{}/cura_temp_{}_{}.{}'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0], index, Blender.file_extension)
+        if index:
+            temp_path = '{}/cura_temp_{}_{}.{}'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0], index, Blender.file_extension)
+        else:
+            temp_path = '{}/cura_temp_{}.{}'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0], Blender.file_extension)
+
         return temp_path
 
     @classmethod
@@ -232,6 +236,10 @@ class BLENDReader(MeshReader):
 
     def _openFile(self, temp_path):
         reader = Application.getInstance().getMeshFileHandler().getReaderForFile(temp_path)
-        node = reader.read(temp_path)
-        os.remove(temp_path)
+        try:
+            node = reader.read(temp_path)
+            os.remove(temp_path)
+        except:
+            Logger.logException('e', 'Could not read file')
+            os.remove(temp_path)
         return node
