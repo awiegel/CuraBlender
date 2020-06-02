@@ -90,9 +90,21 @@ class Blender(Extension):
 
     def openInBlender(self):
         if len(Selection.getAllSelectedObjects()) == 0:
-           message = Message(text=i18n_catalog.i18nc('@info','Select Object first'), title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
-           message._lifetime = 10
-           message.show()
+            open_files = set()
+            for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
+                if isinstance(node, CuraSceneNode) and node.getMeshData().getFileName():
+                    if '_curasplit_' in node.getMeshData().getFileName():
+                        file_path = node.getMeshData().getFileName()
+                        file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+                    else:
+                        file_path = node.getMeshData().getFileName()
+                    open_files.add(file_path)
+            if len(open_files) == 1:
+                self.openBlender(open_files.pop())
+            else:                    
+                message = Message(text=i18n_catalog.i18nc('@info','Select Object first'), title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
+                message._lifetime = 10
+                message.show()
         elif len(Selection.getAllSelectedObjects()) == 1:
             for selection in Selection.getAllSelectedObjects():
                 file_path = selection.getMeshData().getFileName()
