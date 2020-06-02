@@ -1,6 +1,7 @@
 import bpy
 import sys
 import math
+import os
 
 
 def removeScene():
@@ -28,9 +29,11 @@ def removeDecorators(objects):
         node += 1
 
 
-def findIndexAndLink(objects, index):
+def findIndexAndLink(objects, index, file_path = None):
     for node in range(len(objects)):
         if node == index:
+            if file_path:
+                objects[node].name = '{}_{}_NEW'.format(os.path.basename(file_path).rsplit('.', 1)[0], os.path.basename(file_path).rsplit('.', 1)[-1])
             bpy.context.collection.objects.link(objects[node])
 
 
@@ -85,21 +88,29 @@ def main():
         for file_path in list(filter(None, blender_files)):
             if '_curasplit_' in file_path:
                 index = int(file_path[file_path.index('_curasplit_') + 11:][:-6]) - 1
-                file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+                original_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
 
-                objects = loadLibrary(file_path)
+                objects = loadLibrary(original_path)
                 removeDecorators(objects)
 
-                findIndexAndLink(objects, index)
+                findIndexAndLink(objects, index, file_path)
 
             else:
                 objects = loadLibrary(file_path)
                 removeDecorators(objects)
                 
                 for node in objects:
+                    node.name = '{}_{}_NEW'.format(os.path.basename(file_path).strip('.blend'), os.path.basename(file_path).rsplit('.', 1)[-1])
                     bpy.context.collection.objects.link(node)
 
-        exec(sys.argv[-3])      #load foreign file format (stl, ply, obj, x3d)
+        execute_list = sys.argv[-3]
+        execute_list = execute_list.split(';')
+        for execute in list(filter(None, execute_list)):
+            exec(execute)
+            for node in bpy.context.collection.objects:
+                if not node.name.endswith('_NEW'):
+                    file_name = os.path.basename(execute[execute.index('filepath = ') + 12:][:-2])
+                    node.name = '{}_{}_NEW'.format(file_name.rsplit('.', 1)[0], file_name.rsplit('.', 1)[-1])
 
         repositionObjects()
 
