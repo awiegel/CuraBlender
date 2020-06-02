@@ -35,9 +35,8 @@ class BLENDWriter(MeshWriter):
 
         for node in nodes:
             for children in node.getAllChildren():
-                if isinstance(children, CuraSceneNode) and children.getMeshData().getFileName() is not None:
+                if isinstance(children, CuraSceneNode) and children.getMeshData().getFileName():
                     file_list.append(children.getMeshData().getFileName())
-                    Logger.log('d', file_list)
         
         execute_list = ''
         blender_files = ''
