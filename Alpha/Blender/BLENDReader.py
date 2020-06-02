@@ -177,7 +177,7 @@ class BLENDReader(MeshReader):
 
 
     def _buildTempPath(self, file_path, index = None):
-        temp_path = '{}/cura_temp{}.{}'.format(os.path.dirname(file_path), index, Blender.file_extension)
+        temp_path = '{}/cura_temp_{}_{}.{}'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0], index, Blender.file_extension)
         return temp_path
 
     @classmethod
