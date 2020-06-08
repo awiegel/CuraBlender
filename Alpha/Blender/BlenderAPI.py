@@ -15,15 +15,19 @@ def removeScene():
 def loadLibrary(file_path):
     with bpy.data.libraries.load(file_path) as (src, dst):
         dst.objects = src.objects
+    removeDecorators(dst.objects, 'library')
     return dst.objects
     
 
-def removeDecorators(objects):
+def removeDecorators(objects, library = None):
     node = 0
     nodes = len(objects)
     while node < nodes:
         if objects[node].type != "MESH":
-            objects.remove(objects[node])
+            if library:
+                objects.remove(objects[node])
+            else:
+                objects.unlink(objects[node])
             node -= 1
             nodes -= 1
         node += 1
@@ -40,6 +44,11 @@ def findIndexAndLink(objects, index, file_path = None):
 def repositionObjects():
     # angle = radian / numbers_of_ob
     A = 6.283185307179586476925286766559 / len(bpy.context.collection.objects)
+
+    #dimensions = (0, 0, 0)
+    #for node in bpy.context.collection.objects:
+    #    dimensions += bpy.context.collection.objects[node].dimensions
+    #dimensions /= len(bpy.context.collection.objects)
 
     # radius
     R = 50 * len(bpy.context.collection.objects)
@@ -73,10 +82,9 @@ def main():
         removeScene()
         
         objects = loadLibrary(file_path)
-        removeDecorators(objects)
         
         findIndexAndLink(objects, index)
-        
+
         exec(sys.argv[-4])
 
     elif program == 'Write':
@@ -91,13 +99,11 @@ def main():
                 original_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
 
                 objects = loadLibrary(original_path)
-                removeDecorators(objects)
 
                 findIndexAndLink(objects, index, file_path)
 
             else:
                 objects = loadLibrary(file_path)
-                removeDecorators(objects)
                 
                 for node in objects:
                     node.name = '{}_{}_NEW'.format(os.path.basename(file_path).strip('.blend'), os.path.basename(file_path).rsplit('.', 1)[-1])
