@@ -10,24 +10,26 @@ from UM.Scene.Selection import Selection
 from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
 from UM.Application import Application
 from cura.Scene.CuraSceneNode import CuraSceneNode
+from UM.Mesh.ReadMeshJob import ReadMeshJob  # To reload a mesh when its file was changed.
 from UM.i18n import i18nCatalog
 
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtCore import QUrl
+from PyQt5.QtCore import QUrl, QFileSystemWatcher
 
 from . import BLENDReader
 
 i18n_catalog = i18nCatalog('uranium')
 
 
-global blender_path, file_extension
+global blender_path, file_extension, fs_watcher
 blender_path = None
 file_extension = 'stl'
+fs_watcher = QFileSystemWatcher()
 
 
 class Blender(Extension):
-    global blender_path
+    global blender_path, fs_watcher
     def __init__(self):
         super().__init__()
         self._supported_extensions = ['.blend']
@@ -36,6 +38,7 @@ class Blender(Extension):
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Open in Blender'), self.openInBlender)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'File Extension'), self.file_extension)
 
+        fs_watcher.fileChanged.connect(self.fileChanged)
 
     #@staticmethod
     #def getBlenderPath():
@@ -200,3 +203,37 @@ class Blender(Extension):
             file_extension = 'obj'
         else:
             None
+    
+
+    def fileChanged(self, path):
+        job = ReadMeshJob(path)
+        job.finished.connect(self._readMeshFinished)
+        job.start()
+
+
+    def _readMeshFinished(self, job):
+        job._nodes = []
+        for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
+            if isinstance(node, CuraSceneNode) and node.getMeshData():
+                file_path = node.getMeshData().getFileName()
+                if '_curasplit_' in file_path:
+                    file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+
+                if file_path == job.getFileName():
+                    job._nodes.append(node)
+
+        job_result = job.getResult()
+        index = 0
+        dif = len(job_result) - len(job._nodes)
+        for d in range(dif):
+            job._nodes.insert(d, '')
+
+        for (node, job._node) in zip(job_result, job._nodes):
+            if index < dif:
+                index += 1
+                continue
+            #if node.getId() == job._node.getId():
+            mesh_data = node.getMeshData()
+            job._node.setMeshData(mesh_data)
+        
+        Application.getInstance().arrangeAll()

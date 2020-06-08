@@ -52,7 +52,7 @@ class BLENDReader(MeshReader):
 
     def _changeWatchedFile(self, old_path, new_path):
         Application.getInstance().getController().getScene().removeWatchedFile(old_path)
-        Application.getInstance().getController().getScene().addWatchedFile(new_path)
+        Blender.fs_watcher.addPath(new_path)
 
 
     def _calculateAndSetScale(self, nodes):
