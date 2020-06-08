@@ -131,7 +131,10 @@ class BLENDReader(MeshReader):
         if '_curasplit_' not in file_path:
             command = self.buildCommand('Count nodes', file_path)
             objects = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
-            objects = int(objects.stdout.splitlines()[4])
+            for nextline in objects.stdout.splitlines():
+                if nextline.isdigit():
+                    objects = int(nextline)
+                    break
 
             if objects <= 1:
                 temp_path = self._buildTempPath(file_path)
