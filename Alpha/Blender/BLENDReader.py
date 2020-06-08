@@ -1,8 +1,9 @@
 import sys
 import platform
-import os.path
 import os
+import os.path
 import glob
+import random
 import subprocess
 from subprocess import PIPE
 
@@ -20,7 +21,6 @@ from UM.i18n import i18nCatalog
 i18n_catalog = i18nCatalog('uranium')
 
 from . import Blender
-
 
 class BLENDReader(MeshReader):
     def __init__(self) -> None:
@@ -147,6 +147,7 @@ class BLENDReader(MeshReader):
                 nodes.append(node)
             else:
                 processes = []
+                temp_paths = []
                 for index in range(objects):
                     temp_path = self._buildTempPath(file_path, index)
                     import_file = self._importFile(temp_path)
@@ -154,8 +155,9 @@ class BLENDReader(MeshReader):
                     command = self.buildCommand('Multiple nodes', file_path, import_file, str(index))
                     process = subprocess.Popen(command, shell = True)
                     processes.append(process)
-                for (index, process) in zip(range(objects), processes):
-                    temp_path = self._buildTempPath(file_path, index)
+                    temp_paths.append(temp_path)
+
+                for (index, process, temp_path) in zip(range(objects), processes, temp_paths):
                     process.wait()
                     node = self._openFile(temp_path)
                     node.getMeshData()._file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], index + 1)
@@ -181,9 +183,11 @@ class BLENDReader(MeshReader):
 
     def _buildTempPath(self, file_path, index = None):
         if index:
-            temp_path = '{}/cura_temp_{}_{}.{}'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0], index, Blender.file_extension)
+            # temp_path = '{}/cura_temp_{}_{}.{}'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0], index, Blender.file_extension)
+            temp_path = '{}/cura_temp_{}_{}.{}'.format(os.path.dirname(file_path), str(random.random())[2:], index, Blender.file_extension)
         else:
-            temp_path = '{}/cura_temp_{}.{}'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0], Blender.file_extension)
+            # temp_path = '{}/cura_temp_{}.{}'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0], Blender.file_extension)
+            temp_path = '{}/cura_temp_{}.{}'.format(os.path.dirname(file_path), str(random.random())[2:], Blender.file_extension)
 
         return temp_path
 
