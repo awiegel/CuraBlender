@@ -39,13 +39,17 @@ class BLENDReader(MeshReader):
         nodes = []
         temp_path = self._convertAndOpenFile(file_path, nodes)
 
-        self._file_path = file_path
-        #self._blender_path = Blender.blender_path
+        if temp_path:
+            self._file_path = file_path
+            #self._blender_path = Blender.blender_path
 
-        self._changeWatchedFile(temp_path, file_path)
+            self._changeWatchedFile(temp_path, file_path)
 
-        if not self._curasplit:
-            self._calculateAndSetScale(nodes)
+            if not self._curasplit:
+                self._calculateAndSetScale(nodes)
+        else:
+            message = Message(text=i18n_catalog.i18nc('@info', 'Your file did not contain any objects.'), title=i18n_catalog.i18nc('@info:title', 'No object found'))
+            message.show()
 
         return nodes
 
@@ -118,9 +122,9 @@ class BLENDReader(MeshReader):
             if Blender.blender_path is None:
                 QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
             elif self._file_path is None:
-                subprocess.run(Blender.blender_path, shell = True)
+                subprocess.Popen(Blender.blender_path, shell = True)
             else:
-                subprocess.run((Blender.blender_path, self._file_path), shell = True)
+                subprocess.Popen((Blender.blender_path, self._file_path), shell = True)
         elif action == 'Ignore':
             message.hide()
         else:
@@ -136,7 +140,9 @@ class BLENDReader(MeshReader):
                     objects = int(nextline)
                     break
 
-            if objects <= 1:
+            if objects == 0:
+                return
+            elif objects == 1:
                 temp_path = self._buildTempPath(file_path)
                 import_file = self._importFile(temp_path)
                 command = self.buildCommand('Single node', file_path, import_file)
@@ -245,8 +251,7 @@ class BLENDReader(MeshReader):
         reader = Application.getInstance().getMeshFileHandler().getReaderForFile(temp_path)
         try:
             node = reader.read(temp_path)
-            os.remove(temp_path)
-        except:
-            Logger.logException('e', 'Could not read file')
-            os.remove(temp_path)
+        finally:
+            if os.path.isfile(temp_path):
+                os.remove(temp_path)
         return node
