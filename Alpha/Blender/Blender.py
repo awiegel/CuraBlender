@@ -2,6 +2,7 @@ import subprocess
 import os.path
 import platform
 import glob
+import time
 
 from UM.Logger import Logger
 from UM.Message import Message
@@ -92,6 +93,9 @@ class Blender(Extension):
 
 
     def openInBlender(self):
+        if blender_path is None:
+            self.setBlenderPath()
+
         if len(Selection.getAllSelectedObjects()) == 0:
             open_files = set()
             for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
@@ -138,7 +142,7 @@ class Blender(Extension):
             if current_file_extension == 'blend':
                 if '_curasplit_' in file_path:
                     file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-                subprocess.run((blender_path, file_path), shell = True)
+                subprocess.Popen((blender_path, file_path), shell = True)
 
             else:
                 execute_list = 'bpy.data.objects.remove(bpy.data.objects["Cube"]);'
@@ -163,7 +167,8 @@ class Blender(Extension):
                 )
                 subprocess.run(command, shell = True)
 
-                subprocess.run((blender_path, export_file), shell = True)
+                subprocess.Popen((blender_path, export_file), shell = True)
+                time.sleep(3)
                 os.remove(export_file)
 
 
