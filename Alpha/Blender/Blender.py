@@ -34,12 +34,15 @@ class Blender(Extension):
     def __init__(self):
         super().__init__()
         self._supported_extensions = ['.blend']
+        self._supported_foreign_extensions = ['stl', 'obj', 'x3d', 'ply']
 
         self.setMenuName(i18n_catalog.i18nc('@item:inmenu', 'Blender'))
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Open in Blender'), self.openInBlender)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'File Extension'), self.file_extension)
 
         fs_watcher.fileChanged.connect(self.fileChanged)
+        self._foreign_file_watcher = QFileSystemWatcher()
+        self._foreign_file_watcher.fileChanged.connect(self._foreignFileChanged)
 
     #@staticmethod
     #def getBlenderPath():
@@ -88,6 +91,11 @@ class Blender(Extension):
         dialog.setViewMode(QFileDialog.Detail)
         if dialog.exec_():
             message.hide()
+        else:
+            message.hide()
+            message = Message(text=i18n_catalog.i18nc('@info', 'No blender path was selected'), title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
+            message.show()
+
         blender_path = ''.join(dialog.selectedFiles())
         return blender_path
 
@@ -153,7 +161,7 @@ class Blender(Extension):
                 else:
                     export_file = None
 
-                export_file = '{}/cura_temp.blend'.format(os.path.dirname(file_path))
+                export_file = '{}/{}_cura_temp.blend'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0])
                 execute_list = execute_list + 'bpy.ops.wm.save_as_mainfile(filepath = "{}")'.format(export_file)
 
                 command = (
@@ -168,22 +176,43 @@ class Blender(Extension):
                 subprocess.run(command, shell = True)
 
                 subprocess.Popen((blender_path, export_file), shell = True)
-                time.sleep(3)
-                os.remove(export_file)
+                
 
+                self._foreign_file_extension = os.path.basename(file_path).rsplit('.', 1)[-1]
+                self._foreign_file_watcher.addPath(export_file)
+            else:
+                None
 
-    def _openBlenderTrigger(self, message, action):
-        if action == 'Open in Blender':
-            self.openInBlender()
-        elif action == 'Ignore':
-            message.hide()
-        else:
-            None
+    
+    ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.
+    ##  Explicit for foreign file types. (stl, obj, x3d, ply)
+    #
+    #   \param path  The path to the changed foreign file.
+    def _foreignFileChanged(self, path):
+        export_path = '{}.{}'.format(path[:-6], self._foreign_file_extension)
+        execute_list = 'bpy.ops.export_mesh.{}(filepath = "{}", check_existing = False)'.format(self._foreign_file_extension, export_path)
+        command = (
+            blender_path,
+            path,
+            '--background',
+            '--python-expr',
+            'import bpy;'
+            'import sys;'
+            'exec(sys.argv[-1])',
+            '--', execute_list
+        )
+        subprocess.run(command, shell = True)
 
+        job = ReadMeshJob(export_path)
+        job.finished.connect(self._readMeshFinished)
+        job.start()
+        # Instead of overwriting files, blender saves the old one with .blend1 extension. We don't want this file at all, but need the original one for the file watcher.
+        os.remove(path + '1')
+        # Adds new filewatcher reference, because cura removes filewatcher automatically for other file types after reading.
+        self._foreign_file_watcher.addPath(path)
 
     def file_extension(self):
         message = Message(text=i18n_catalog.i18nc('@info','File Extension'), title=i18n_catalog.i18nc('@info:title', 'Choose your File Extension.'))
-        message._lifetime = 15
         message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'),
                           '[no_icon]', '[no_description]')
         message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'),
@@ -218,14 +247,23 @@ class Blender(Extension):
 
     def _readMeshFinished(self, job):
         job._nodes = []
+        tempFlag = False
         for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
             if isinstance(node, CuraSceneNode) and node.getMeshData():
                 file_path = node.getMeshData().getFileName()
                 if '_curasplit_' in file_path:
                     file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
 
-                if file_path == job.getFileName():
-                    job._nodes.append(node)
+                if '_cura_temp' in job.getFileName():
+                    temp_path = '{}/{}.{}'.format(os.path.dirname(job.getFileName()),                          \
+                                                  os.path.basename(job.getFileName()).rsplit('.', 1)[0][:-10], \
+                                                  os.path.basename(job.getFileName()).rsplit('.', 1)[-1])
+                    if file_path == temp_path:
+                        job._nodes.append(node)
+                        tempFlag = True
+                else:
+                    if file_path == job.getFileName():
+                        job._nodes.append(node)
 
         job_result = job.getResult()
         index = 0
@@ -237,8 +275,10 @@ class Blender(Extension):
             if index < dif:
                 index += 1
                 continue
-            #if node.getId() == job._node.getId():
             mesh_data = node.getMeshData()
             job._node.setMeshData(mesh_data)
-        
+            # Checks if foreign file is reloaded and sets the correct file name.
+            if tempFlag:
+                job._node.getMeshData()._file_name = temp_path
+
         Application.getInstance().arrangeAll()
