@@ -1,9 +1,13 @@
-import bpy
+# Imports from the python standard library.
 import sys
 import math
 import os
 
+# Imports from the blender python library.
+import bpy
 
+
+## Removes the entire scene.
 def removeScene():
     node = 0
     objects = len(bpy.context.collection.objects)
@@ -11,7 +15,10 @@ def removeScene():
         bpy.context.collection.objects.unlink(bpy.context.collection.objects[node])
         objects -= 1
 
-
+##  Loads the given .blend file as a library.
+#
+#   \param file_path  The path of the .blend file.
+#   \return           All real objects without any decorators.
 def loadLibrary(file_path):
     with bpy.data.libraries.load(file_path) as (src, dst):
         dst.objects = src.objects
@@ -19,6 +26,10 @@ def loadLibrary(file_path):
     return dst.objects
     
 
+##  Removes all decorators (Camera, Light, ...).
+#
+#   \param objects  A list of objects.
+#   \param library  Flag that indicates a library. For compatibility reasons.
 def removeDecorators(objects, library = None):
     node = 0
     nodes = len(objects)
@@ -33,6 +44,11 @@ def removeDecorators(objects, library = None):
         node += 1
 
 
+##  Find the object with the given index and link tit to the scene.
+#
+#   \param objects    A list of objects.
+#   \param index      The index of the object. Used for files with multiple objects.
+#   \param file_path  The file path for renaming purpose. Used in 'Write' mode.
 def findIndexAndLink(objects, index, file_path = None):
     for node in range(len(objects)):
         if node == index:
@@ -41,6 +57,7 @@ def findIndexAndLink(objects, index, file_path = None):
             bpy.context.collection.objects.link(objects[node])
 
 
+##  Reposition all objects in the blender file. Used in 'Write' mode.
 def repositionObjects():
     # angle = radian / numbers_of_ob
     A = 6.283185307179586476925286766559 / len(bpy.context.collection.objects)
@@ -61,6 +78,7 @@ def repositionObjects():
             bpy.context.collection.objects[node].location[2] = 0
 
 
+##  Main program. 
 def main():
     program = sys.argv[-1]
 
@@ -124,7 +142,8 @@ def main():
 
     else:
         None
- 
 
+
+##  Main entry point that calls the program.
 if __name__ == "__main__":
     main()
