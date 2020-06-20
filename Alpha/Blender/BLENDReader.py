@@ -34,22 +34,29 @@ class BLENDReader(MeshReader):
         if not Blender.blender_path:
             Blender.Blender.setBlenderPath()
 
-        self._curasplit = False
-
         nodes = []
-        temp_path = self._convertAndOpenFile(file_path, nodes)
+        if Blender.blender_path:
+            self._curasplit = False
 
-        if temp_path:
-            self._file_path = file_path
-            #self._blender_path = Blender.blender_path
+            temp_path = self._convertAndOpenFile(file_path, nodes)
 
-            self._changeWatchedFile(temp_path, file_path)
+            if temp_path:
+                self._file_path = file_path
 
-            if not self._curasplit:
+                self._changeWatchedFile(temp_path, file_path)
+
+                if not self._curasplit:
+                    for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
+                        if isinstance(node, CuraSceneNode):
+                            # Checks if read is actually a reload or if the file is already opened and suppress the scaling message.
+                            if file_path in node.getMeshData().getFileName() or file_path[:-6] + '_curasplit_' in node.getMeshData().getFileName():
+                                self._curasplit = True
+                                break
+
                 self._calculateAndSetScale(nodes)
-        else:
-            message = Message(text=i18n_catalog.i18nc('@info', 'Your file did not contain any objects.'), title=i18n_catalog.i18nc('@info:title', 'No object found'))
-            message.show()
+            else:
+                message = Message(text=i18n_catalog.i18nc('@info', 'Your file did not contain any objects.'), title=i18n_catalog.i18nc('@info:title', 'No object found'))
+                message.show()
 
         return nodes
 
@@ -107,8 +114,8 @@ class BLENDReader(MeshReader):
         for node in nodes:
             node.scale(scale = Vector(scale_factor,scale_factor,scale_factor))
 
-        if message:
-            message._lifetime = 10
+
+        if message and not self._curasplit:
             message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'),
                           '[no_icon]', '[no_description]', button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
             message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'),
