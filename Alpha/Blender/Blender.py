@@ -4,6 +4,7 @@ import platform
 import glob
 import time
 import subprocess
+import json
 
 # Imports from QT.
 from PyQt5.QtWidgets import QFileDialog
@@ -30,15 +31,13 @@ i18n_catalog = i18nCatalog('uranium')
 
 # Global variables used by our other modules.
 global blender_path, file_extension, fs_watcher
-blender_path = None
-file_extension = 'stl'
-fs_watcher = QFileSystemWatcher()
 
 
 ##  Main class for blender plugin.
 class Blender(Extension):
     global blender_path, fs_watcher
     def __init__(self):
+        global fs_watcher, blender_path, file_extension
         ##  The constructor, which calls the super-class-contructor (MeshReader).
         ##  Adds .blend as a supported file extension.
         ##  Adds menu items and the filewatcher trigger function.
@@ -50,31 +49,77 @@ class Blender(Extension):
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Open in Blender'), self.openInBlender)
         self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'File Extension'), self.file_extension)
 
+        # Loads path to blender from settings file.
+        blender_path = self.loadJsonFile('blender_path')
+        # Loads preferred file extension from settings file.
+        file_extension = self.loadJsonFile('file_extension')
+
+        # Adds filewatcher and it's connection for blender files.
+        fs_watcher = QFileSystemWatcher()
         fs_watcher.fileChanged.connect(self.fileChanged)
+
+        # Adds filewatcher and it's connection for foreign files.
         self._foreign_file_watcher = QFileSystemWatcher()
         self._foreign_file_watcher.fileChanged.connect(self._foreignFileChanged)
+
+
+    ##  Loads value from settings file (blender_settings.json) based on key.
+    #
+    #   \param key  The key inside the settings file.
+    #   \return     The value associated with the given key.
+    @classmethod
+    def loadJsonFile(self, key):
+        with open('plugins/Blender/blender_settings.json', 'r') as json_file:
+            data = json.load(json_file)
+        return data[key]
+    
+
+    ##  Loads the settings file (blender_settings.json) and tries to store the value to the given key.
+    ##  The settings file (blender_settings.json) needs to have write permission for current user.
+    ##  If no permissions are granted, no changes won't be saved to the settings file and user needs to change settings manually.
+    #
+    #   \param key    The key inside the settings file.
+    #   \param value  The value we try to add to the requested key.
+    @classmethod
+    def writeJsonFile(self, key, value):
+        with open('plugins/Blender/blender_settings.json', 'r') as json_file:
+            data = json.load(json_file)
+
+        # Needs write permissions for the settings file (blender_settings.json).
+        try:
+            with open('plugins/Blender/blender_settings.json', 'w+') as outfile:
+                data[key] = value
+                json.dump(data, outfile, indent=4)
+        except:
+            None
 
 
     ##  Tries to set the path to blender automatically, if unsuccessful the user can set it manually.
     @classmethod
     def setBlenderPath(self):
         global blender_path
-        system = platform.system()
-        # Supports multi-platform
-        if system == 'Windows':
-            temp_blender_path = glob.glob('C:/Program Files/Blender Foundation/**/*.exe')
-            blender_path = ''.join(temp_blender_path).replace('\\', '/')
-            # blender_path = 'test'
-        elif system == 'Darwin':
-            blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
-        elif system == 'Linux':
-            blender_path = '/usr/share/blender/2.82/blender'
-        else:
-            blender_path = None
 
-        # If unsuccessful the user can set it manually.
-        if not os.path.exists(blender_path):
-            blender_path = self._openFileDialog(blender_path, system)
+        if self.loadJsonFile('blender_path'):
+            blender_path = self.loadJsonFile('blender_path')
+        else:
+            system = platform.system()
+            # Supports multi-platform
+            if system == 'Windows':
+                temp_blender_path = glob.glob('C:/Program Files/Blender Foundation/**/*.exe')
+                blender_path = ''.join(temp_blender_path).replace('\\', '/')
+                # blender_path = 'test'
+            elif system == 'Darwin':
+                blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
+            elif system == 'Linux':
+                blender_path = '/usr/share/blender/2.82/blender'
+            else:
+                blender_path = None
+
+            # If unsuccessful the user can set it manually.
+            if not os.path.exists(blender_path):
+                blender_path = self._openFileDialog(blender_path, system)
+            
+            self.writeJsonFile('blender_path', blender_path)
 
 
     ##  The user can set the path to blender manually. Gets called when blender isn't found in the expected place.
@@ -264,15 +309,22 @@ class Blender(Extension):
             file_extension = 'obj'
         else:
             None
+        self.writeJsonFile('file_extension', file_extension)
     
 
     ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.
     #
     #   \param path  The path to the changed blender file.
     def fileChanged(self, path):
-        job = ReadMeshJob(path)
-        job.finished.connect(self._readMeshFinished)
-        job.start()
+        # Checks auto reload flag in settings file.
+        if self.loadJsonFile('auto_reload'):
+            job = ReadMeshJob(path)
+            job.finished.connect(self._readMeshFinished)
+            job.start()
+        # Adds file to file watcher in case the auto reload flag gets changed during runtime.
+        else:
+            fs_watcher.addPath(path)
+
 
 
     ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.
@@ -318,5 +370,7 @@ class Blender(Extension):
             if tempFlag:
                 job._node.getMeshData()._file_name = temp_path
 
-        # Arranges the complete build plate after reloading a file. Can be on/off in the settings.
-        Application.getInstance().arrangeAll()
+        # Checks auto arrange flag in settings file.
+        if self.loadJsonFile('auto_arrange'):
+            # Arranges the complete build plate after reloading a file. Can be on/off in the settings.
+            Application.getInstance().arrangeAll()

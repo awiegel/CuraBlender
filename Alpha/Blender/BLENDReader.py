@@ -82,69 +82,72 @@ class BLENDReader(MeshReader):
     # Reads all nodes contained in the file
     # Calculates the needed scale factor based on equivalence classes and finally scales all nodes equally
     def _calculateAndSetScale(self, nodes):
-        scale_factors = []
-        for node in nodes:
-            bounding_box = node.getBoundingBox()
-            width = bounding_box.width
-            height = bounding_box.height
-            depth = bounding_box.depth
+        # Checks auto scale flag in settings file.
+        if Blender.Blender.loadJsonFile('auto_scale'):
+            scale_factors = []
+            for node in nodes:
+                bounding_box = node.getBoundingBox()
+                width = bounding_box.width
+                height = bounding_box.height
+                depth = bounding_box.depth
 
-            message = None
-            scale_factor = 1
+                message = None
+                scale_factor = 1
 
-            # Checks the minimum size of the object
-            if((min(width, height, depth)) < 5):
-                if not min(width, height, depth) == 0:
-                    scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
-                    message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too small'))
-            # Checks the maximum height of the object
-            if(scale_factor * height) > 290:
-                scale_factor = scale_factor * (290 / (scale_factor * height))
-                message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too high'))
+                # Checks the minimum size of the object
+                if((min(width, height, depth)) < 5):
+                    if not min(width, height, depth) == 0:
+                        scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too small'))
+                # Checks the maximum height of the object
+                if(scale_factor * height) > 290:
+                    scale_factor = scale_factor * (290 / (scale_factor * height))
+                    message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too high'))
 
-            # Checks the maximum width/depth based on number of objects, because cura doesn't allow to manipulate the position of the object.
-            # The first object gets loaded exactly in the middle and every other object will be appended to it.
-            # Therefor divides the objects in equivalence classes in a grid pattern: 1, 9 (3*3), 25 (5*5), 49 (7*7), 81 (9*9).
-            if len(nodes) == 1:
-                if((scale_factor * width) > 170) or ((scale_factor * depth) > 170):
-                    scale_factor = scale_factor * (170 / (scale_factor * max(width, depth)))
-                    message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too broad and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too broad'))
-            elif len(nodes) <= 9:
-                if((scale_factor * width) > (170 / 3)) or ((scale_factor * depth) > (170 / 3)):
-                    scale_factor = scale_factor * ((170 / 3) / (scale_factor * max(width, depth)))
-                    message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
-            elif len(nodes) <= 25:
-                if((scale_factor * width) > (170 / 5)) or ((scale_factor * depth) > (170 / 5)):
-                    scale_factor = scale_factor * ((170 / 5) / (scale_factor * max(width, depth)))
-                    message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
-            elif len(nodes) <= 49:
-                if((scale_factor * width) > (170 / 7)) or ((scale_factor * depth) > (170 / 7)):
-                    scale_factor = scale_factor * ((170 / 7) / (scale_factor * max(width, depth)))
-                    message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
-            elif len(nodes) <= 81:
-                if((scale_factor * width) > (170 / 9)) or ((scale_factor * depth) > (170 / 9)):
-                    scale_factor = scale_factor * ((170 / 9) / (scale_factor * max(width, depth)))
-                    message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
-            else:
-                None
+                # Checks the maximum width/depth based on number of objects, because cura doesn't allow to manipulate the position of the object.
+                # The first object gets loaded exactly in the middle and every other object will be appended to it.
+                # Therefor divides the objects in equivalence classes in a grid pattern: 1, 9 (3*3), 25 (5*5), 49 (7*7), 81 (9*9).
+                if len(nodes) == 1:
+                    if((scale_factor * width) > 170) or ((scale_factor * depth) > 170):
+                        scale_factor = scale_factor * (170 / (scale_factor * max(width, depth)))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too broad and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too broad'))
+                elif len(nodes) <= 9:
+                    if((scale_factor * width) > (170 / 3)) or ((scale_factor * depth) > (170 / 3)):
+                        scale_factor = scale_factor * ((170 / 3) / (scale_factor * max(width, depth)))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                elif len(nodes) <= 25:
+                    if((scale_factor * width) > (170 / 5)) or ((scale_factor * depth) > (170 / 5)):
+                        scale_factor = scale_factor * ((170 / 5) / (scale_factor * max(width, depth)))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                elif len(nodes) <= 49:
+                    if((scale_factor * width) > (170 / 7)) or ((scale_factor * depth) > (170 / 7)):
+                        scale_factor = scale_factor * ((170 / 7) / (scale_factor * max(width, depth)))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                elif len(nodes) <= 81:
+                    if((scale_factor * width) > (170 / 9)) or ((scale_factor * depth) > (170 / 9)):
+                        scale_factor = scale_factor * ((170 / 9) / (scale_factor * max(width, depth)))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                else:
+                    None
 
-            scale_factors.append(scale_factor)
+                scale_factors.append(scale_factor)
 
-        # Calculates the average scale factor
-        scale_factor = sum(scale_factors) / len(scale_factors)
+            # Calculates the average scale factor
+            scale_factor = sum(scale_factors) / len(scale_factors)
 
-        # Scales all nodes with the same factor.
-        for node in nodes:
-            node.scale(scale = Vector(scale_factor,scale_factor,scale_factor))
+            # Scales all nodes with the same factor.
+            for node in nodes:
+                node.scale(scale = Vector(scale_factor,scale_factor,scale_factor))
 
-
-        if message and not self._curasplit:
-            message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'),
-                          '[no_icon]', '[no_description]', button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'),
-                          '[no_icon]', '[no_description]', button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
-            message.actionTriggered.connect(self._openBlenderTrigger)
-            message.show()
+            # Checks scale message flag in settings file.
+            if Blender.Blender.loadJsonFile('scale_message'):
+                if message and not self._curasplit:
+                    message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'),
+                                '[no_icon]', '[no_description]', button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+                    message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'),
+                                '[no_icon]', '[no_description]', button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
+                    message.actionTriggered.connect(self._openBlenderTrigger)
+                    message.show()
 
 
     ##  The trigger connected with open blender function
