@@ -98,16 +98,17 @@ class Blender(Extension):
     @classmethod
     def setBlenderPath(self):
         global blender_path
-
+        # Checks blender path in settings file.
         if self.loadJsonFile('blender_path'):
             blender_path = self.loadJsonFile('blender_path')
-        else:
+        
+        # Stops here because blender path from settings file is correct.
+        if not self.verifyBlenderPath():
             system = platform.system()
             # Supports multi-platform
             if system == 'Windows':
                 temp_blender_path = glob.glob('C:/Program Files/Blender Foundation/**/*.exe')
                 blender_path = ''.join(temp_blender_path).replace('\\', '/')
-                # blender_path = 'test'
             elif system == 'Darwin':
                 blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
             elif system == 'Linux':
@@ -118,8 +119,24 @@ class Blender(Extension):
             # If unsuccessful the user can set it manually.
             if not os.path.exists(blender_path):
                 blender_path = self._openFileDialog(blender_path, system)
-            
+            # Adds blender path in settings file (needs permission).
             self.writeJsonFile('blender_path', blender_path)
+
+
+    ##  Verifies the path to blender.
+    @classmethod
+    def verifyBlenderPath(self):
+        correct_blender_path = False
+        try:
+            # Checks if blender path variable is set and the path really exists.
+            if blender_path and os.path.exists(blender_path):
+                # Calls blender in the background and jumps to the exception if it's not blender and therefor returns false.
+                subprocess.check_call((blender_path, '--background'), shell=True)
+                correct_blender_path = True
+        except:
+            Logger.logException('e', 'Problems with path to blender!')
+        finally:
+            return correct_blender_path
 
 
     ##  The user can set the path to blender manually. Gets called when blender isn't found in the expected place.
@@ -132,7 +149,6 @@ class Blender(Extension):
         message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually'),
                           title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
         message.show()
-
         dialog = QFileDialog()
         dialog.setAcceptMode(QFileDialog.AcceptOpen)
         # Supports multi-platform
@@ -157,104 +173,103 @@ class Blender(Extension):
             message = Message(text=i18n_catalog.i18nc('@info', 'No blender path was selected'),
                               title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
             message.show()
-
+        # Gets the selected blender path from file explorer.
         blender_path = ''.join(dialog.selectedFiles())
         return blender_path
 
 
     ##  Checks if the selection of objects is correct and allowed and calls the actual function to open the file. 
     def openInBlender(self):
-        # Checks if path for blender is set, otherwise tries to set it.
-        if blender_path is None:
+        # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
+        if not blender_path or not self.verifyBlenderPath():
             self.setBlenderPath()
 
-        # If no object is selected, check if the objects belong to more than one file.
-        if len(Selection.getAllSelectedObjects()) == 0:
-            open_files = set()
-            for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
-                if isinstance(node, CuraSceneNode) and node.getMeshData().getFileName():
-                    if '_curasplit_' in node.getMeshData().getFileName():
-                        file_path = node.getMeshData().getFileName()
+        # Only continues if correct path to blender is set.
+        if self.verifyBlenderPath():
+            # If no object is selected, check if the objects belong to more than one file.
+            if len(Selection.getAllSelectedObjects()) == 0:
+                open_files = set()
+                for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
+                    if isinstance(node, CuraSceneNode) and node.getMeshData().getFileName():
+                        if '_curasplit_' in node.getMeshData().getFileName():
+                            file_path = node.getMeshData().getFileName()
+                            file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+                        else:
+                            file_path = node.getMeshData().getFileName()
+                        open_files.add(file_path)
+                # Opens the objects in blender, if they belong to only one file.
+                if len(open_files) == 1:
+                    self.openBlender(open_files.pop())
+                else:                    
+                    message = Message(text=i18n_catalog.i18nc('@info','Select Object first'),
+                                    title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
+                    message.show()
+            # If one object is selecte, open it's file reference (file name)
+            elif len(Selection.getAllSelectedObjects()) == 1:
+                for selection in Selection.getAllSelectedObjects():
+                    file_path = selection.getMeshData().getFileName()
+                    if '_curasplit_' in file_path:
                         file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-                    else:
-                        file_path = node.getMeshData().getFileName()
-                    open_files.add(file_path)
-            # Opens the objects in blender, if they belong to only one file.
-            if len(open_files) == 1:
-                self.openBlender(open_files.pop())
-            else:                    
-                message = Message(text=i18n_catalog.i18nc('@info','Select Object first'),
-                                  title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
-                message.show()
-        # If one object is selecte, open it's file reference (file name)
-        elif len(Selection.getAllSelectedObjects()) == 1:
-            for selection in Selection.getAllSelectedObjects():
-                file_path = selection.getMeshData().getFileName()
-                if '_curasplit_' in file_path:
-                    file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-                self.openBlender(file_path)
-        # If multiple objects are selected, check if they belong to more than one file.
-        else:
-            files = set()
-            for selection in Selection.getAllSelectedObjects():
-                file_path = selection.getMeshData().getFileName()
-                if '_curasplit_' in file_path:
-                    file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-                files.add(file_path)
-            # Opens the objects in blender, if they belong to only one file.
-            if len(files) == 1:
-                self.openBlender(file_path)
+                    self.openBlender(file_path)
+            # If multiple objects are selected, check if they belong to more than one file.
             else:
-                message = Message(text=i18n_catalog.i18nc('@info','Please rethink your selection.'),
-                                  title=i18n_catalog.i18nc('@info:title', 'Select only objects from same file'))
-                message.show()
+                files = set()
+                for selection in Selection.getAllSelectedObjects():
+                    file_path = selection.getMeshData().getFileName()
+                    if '_curasplit_' in file_path:
+                        file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+                    files.add(file_path)
+                # Opens the objects in blender, if they belong to only one file.
+                if len(files) == 1:
+                    self.openBlender(file_path)
+                else:
+                    message = Message(text=i18n_catalog.i18nc('@info','Please rethink your selection.'),
+                                    title=i18n_catalog.i18nc('@info:title', 'Select only objects from same file'))
+                    message.show()
 
 
     ##  Opens the given file in blender. File must not necessarily be a blender file.
     #
     #   \param file_path  The path of the file to open in blender.
     def openBlender(self, file_path):
-        if blender_path is None:
-            QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
-        else:
-            # Gets the extension of the file.
-            current_file_extension = os.path.basename(file_path).partition('.')[2]
-            # Checks if file is a blender file.
-            if current_file_extension == 'blend':
-                if '_curasplit_' in file_path:
-                    file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-                subprocess.Popen((blender_path, file_path), shell = True)
-            # Procedure for non-blender files.
-            elif current_file_extension in self._supported_foreign_extensions:
-                execute_list = 'bpy.data.objects.remove(bpy.data.objects["Cube"]);'
-                if current_file_extension == 'stl' or current_file_extension == 'ply':
-                    execute_list = execute_list + 'bpy.ops.import_mesh.{}(filepath = "{}");'.format(current_file_extension, file_path)
-                elif current_file_extension == 'obj' or current_file_extension == 'x3d':
-                    execute_list = execute_list + 'bpy.ops.import_scene.{}(filepath = "{}");'.format(current_file_extension, file_path)
-                else:
-                    None
-
-                export_file = '{}/{}_cura_temp.blend'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0])
-                execute_list = execute_list + 'bpy.ops.wm.save_as_mainfile(filepath = "{}")'.format(export_file)
-
-                command = (
-                    blender_path,
-                    '--background',
-                    '--python-expr',
-                    'import bpy;'
-                    'import sys;'
-                    'exec(sys.argv[-1])',
-                    '--', execute_list
-                )
-                subprocess.run(command, shell = True)
-
-                subprocess.Popen((blender_path, export_file), shell = True)
-                
-
-                self._foreign_file_extension = os.path.basename(file_path).rsplit('.', 1)[-1]
-                self._foreign_file_watcher.addPath(export_file)
+        # Gets the extension of the file.
+        current_file_extension = os.path.basename(file_path).partition('.')[2]
+        # Checks if file is a blender file.
+        if current_file_extension == 'blend':
+            if '_curasplit_' in file_path:
+                file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+            subprocess.Popen((blender_path, file_path), shell = True)
+        # Procedure for non-blender files.
+        elif current_file_extension in self._supported_foreign_extensions:
+            execute_list = 'bpy.data.objects.remove(bpy.data.objects["Cube"]);'
+            if current_file_extension == 'stl' or current_file_extension == 'ply':
+                execute_list = execute_list + 'bpy.ops.import_mesh.{}(filepath = "{}");'.format(current_file_extension, file_path)
+            elif current_file_extension == 'obj' or current_file_extension == 'x3d':
+                execute_list = execute_list + 'bpy.ops.import_scene.{}(filepath = "{}");'.format(current_file_extension, file_path)
             else:
                 None
+
+            export_file = '{}/{}_cura_temp.blend'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0])
+            execute_list = execute_list + 'bpy.ops.wm.save_as_mainfile(filepath = "{}")'.format(export_file)
+
+            command = (
+                blender_path,
+                '--background',
+                '--python-expr',
+                'import bpy;'
+                'import sys;'
+                'exec(sys.argv[-1])',
+                '--', execute_list
+            )
+            subprocess.run(command, shell = True)
+
+            subprocess.Popen((blender_path, export_file), shell = True)
+            
+
+            self._foreign_file_extension = os.path.basename(file_path).rsplit('.', 1)[-1]
+            self._foreign_file_watcher.addPath(export_file)
+        else:
+            None
 
     
     ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.

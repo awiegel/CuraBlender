@@ -43,13 +43,19 @@ class BLENDReader(MeshReader):
     #   \param file_path  The path of the file we try to open.
     #   \return           A list of all nodes contained in the file.
     def read(self, file_path):
-        # Checks if path for blender is set, otherwise tries to set it.
-        if not Blender.blender_path:
+        # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
+        if not Blender.blender_path or not Blender.Blender.verifyBlenderPath():
             Blender.Blender.setBlenderPath()
 
+        # The return value: A list all nodes gets appended to. If file only contains one object, the list will be of length one.
         nodes = []
+
+        # Only continues if correct path to blender is set.
+        if not Blender.Blender.verifyBlenderPath():
+            # Failure message already gets called at other place.
+            Logger.logException('e', 'Problems with path to blender!')
         # Checks if file extension for converting is supported (stl, obj, x3d, ply).
-        if Blender.file_extension not in self._supported_foreign_extensions:
+        elif Blender.file_extension not in self._supported_foreign_extensions:
             Logger.logException('e', '%s file extension is not supported!', Blender.file_extension)
             message = Message(text=i18n_catalog.i18nc('@info', '{} file extension is not supported!\nAllowed: {}'.format(Blender.file_extension, self._supported_foreign_extensions)),
                               title=i18n_catalog.i18nc('@info:title', 'Unsupported file extension'))

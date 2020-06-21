@@ -6,8 +6,8 @@ import subprocess
 from PyQt5.QtCore import QFileSystemWatcher
 
 # Imports from Uranium.
-#from UM.Logger import Logger
 from UM.Mesh.MeshWriter import MeshWriter
+from UM.Logger import Logger
 
 # Imports from Cura.
 from cura.Scene.CuraSceneNode import CuraSceneNode
@@ -29,26 +29,34 @@ class BLENDWriter(MeshWriter):
 
     ##  Main entry point for writing the file.
     #
-    #   \param stream  ?
+    #   \param stream  Buffer containing new file name and more.
     #   \param nodes   All nodes on the current scene.
     #   \param mode    The mode we write our file in. Not important here.
     #   \return        Always true, because the actual writing happens internal and not in this job.
     def write(self, stream, nodes, mode = MeshWriter.OutputMode.BinaryMode):
-        # Checks if path for blender is set, otherwise tries to set it.
-        if not Blender.blender_path:
+        # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
+        if not Blender.blender_path or not Blender.Blender.verifyBlenderPath():
             Blender.Blender.setBlenderPath()
 
-        file_list = self._createFileList(nodes)
-        
-        (blender_files, execute_list) = self._createExecuteList(file_list)
+        # The return value: The status either successful or unsuccessful.
+        success = True
+        # Only continues if correct path to blender is set.
+        if Blender.Blender.verifyBlenderPath():
+            file_list = self._createFileList(nodes)
+            
+            (blender_files, execute_list) = self._createExecuteList(file_list)
 
-        command = self._buildCommand(stream.name, blender_files, execute_list)
+            command = self._buildCommand(stream.name, blender_files, execute_list)
 
-        subprocess.Popen(command, shell = True)
+            subprocess.Popen(command, shell = True)
 
-        self._write_watcher.addPath(stream.name)
+            self._write_watcher.addPath(stream.name)
+        else:
+            # Failure message already gets called at other place.
+            Logger.logException('e', 'Problems with path to blender!')
+            success = False
 
-        return True
+        return success
 
 
     ##  Creates a file list containing the file path of all nodes.
