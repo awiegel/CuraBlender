@@ -129,7 +129,8 @@ class Blender(Extension):
     #   \return              The correctly set path to blender.
     @classmethod
     def _openFileDialog(self, blender_path, system):
-        message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually'), title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
+        message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually'),
+                          title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
         message.show()
 
         dialog = QFileDialog()
@@ -153,7 +154,8 @@ class Blender(Extension):
             message.hide()
         else:
             message.hide()
-            message = Message(text=i18n_catalog.i18nc('@info', 'No blender path was selected'), title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
+            message = Message(text=i18n_catalog.i18nc('@info', 'No blender path was selected'),
+                              title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
             message.show()
 
         blender_path = ''.join(dialog.selectedFiles())
@@ -181,7 +183,8 @@ class Blender(Extension):
             if len(open_files) == 1:
                 self.openBlender(open_files.pop())
             else:                    
-                message = Message(text=i18n_catalog.i18nc('@info','Select Object first'), title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
+                message = Message(text=i18n_catalog.i18nc('@info','Select Object first'),
+                                  title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
                 message.show()
         # If one object is selecte, open it's file reference (file name)
         elif len(Selection.getAllSelectedObjects()) == 1:
@@ -202,7 +205,8 @@ class Blender(Extension):
             if len(files) == 1:
                 self.openBlender(file_path)
             else:
-                message = Message(text=i18n_catalog.i18nc('@info','Please rethink your selection.'), title=i18n_catalog.i18nc('@info:title', 'Select only objects from same file'))
+                message = Message(text=i18n_catalog.i18nc('@info','Please rethink your selection.'),
+                                  title=i18n_catalog.i18nc('@info:title', 'Select only objects from same file'))
                 message.show()
 
 
@@ -283,7 +287,8 @@ class Blender(Extension):
 
     ##  The user can choose in what file format the blender files should be converted to.
     def file_extension(self):
-        message = Message(text=i18n_catalog.i18nc('@info','File Extension'), title=i18n_catalog.i18nc('@info:title', 'Choose your File Extension.'))
+        message = Message(text=i18n_catalog.i18nc('@info','File Extension'),
+                          title=i18n_catalog.i18nc('@info:title', 'Choose your File Extension.'))
         message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'),
                           '[no_icon]', '[no_description]')
         message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'),

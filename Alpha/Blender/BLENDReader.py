@@ -35,6 +35,7 @@ class BLENDReader(MeshReader):
     def __init__(self) -> None:
         super().__init__()
         self._supported_extensions = ['.blend']
+        self._supported_foreign_extensions = ['stl', 'obj', 'x3d', 'ply']
 
 
     ##  Main entry point for reading the file.
@@ -47,11 +48,18 @@ class BLENDReader(MeshReader):
             Blender.Blender.setBlenderPath()
 
         nodes = []
-        if Blender.blender_path:
+        # Checks if file extension for converting is supported (stl, obj, x3d, ply).
+        if Blender.file_extension not in self._supported_foreign_extensions:
+            Logger.logException('e', '%s file extension is not supported!', Blender.file_extension)
+            message = Message(text=i18n_catalog.i18nc('@info', '{} file extension is not supported!\nAllowed: {}'.format(Blender.file_extension, self._supported_foreign_extensions)),
+                              title=i18n_catalog.i18nc('@info:title', 'Unsupported file extension'))
+            message.show()
+        # Checks if path to blender is set.
+        elif Blender.blender_path:
             self._curasplit = False
 
             temp_path = self._convertAndOpenFile(file_path, nodes)
-
+            # Checks if file is converted correctly.
             if temp_path:
                 self._file_path = file_path
 
@@ -66,9 +74,14 @@ class BLENDReader(MeshReader):
                                 break
 
                 self._calculateAndSetScale(nodes)
+            # If file does not contain any objects.
             else:
-                message = Message(text=i18n_catalog.i18nc('@info', 'Your file did not contain any objects.'), title=i18n_catalog.i18nc('@info:title', 'No object found'))
+                Logger.logException('e', '%s does not contain any objects!', file_path)
+                message = Message(text=i18n_catalog.i18nc('@info', '{}\ndoes not contain any objects.'.format(file_path)),
+                                  title=i18n_catalog.i18nc('@info:title', 'No object found'))
                 message.show()
+        else:
+            None
 
         return nodes
 
@@ -98,11 +111,13 @@ class BLENDReader(MeshReader):
                 if((min(width, height, depth)) < 5):
                     if not min(width, height, depth) == 0:
                         scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too small'))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size'),
+                                          title=i18n_catalog.i18nc('@info:title', 'Object was too small'))
                 # Checks the maximum height of the object
                 if(scale_factor * height) > 290:
                     scale_factor = scale_factor * (290 / (scale_factor * height))
-                    message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too high'))
+                    message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size'),
+                                      title=i18n_catalog.i18nc('@info:title', 'Object was too high'))
 
                 # Checks the maximum width/depth based on number of objects, because cura doesn't allow to manipulate the position of the object.
                 # The first object gets loaded exactly in the middle and every other object will be appended to it.
@@ -110,23 +125,28 @@ class BLENDReader(MeshReader):
                 if len(nodes) == 1:
                     if((scale_factor * width) > 170) or ((scale_factor * depth) > 170):
                         scale_factor = scale_factor * (170 / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too broad and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Object was too broad'))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too broad and got scaled down to maximum print size'),
+                                          title=i18n_catalog.i18nc('@info:title', 'Object was too broad'))
                 elif len(nodes) <= 9:
                     if((scale_factor * width) > (170 / 3)) or ((scale_factor * depth) > (170 / 3)):
                         scale_factor = scale_factor * ((170 / 3) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'),
+                                          title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 25:
                     if((scale_factor * width) > (170 / 5)) or ((scale_factor * depth) > (170 / 5)):
                         scale_factor = scale_factor * ((170 / 5) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), 
+                                          title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 49:
                     if((scale_factor * width) > (170 / 7)) or ((scale_factor * depth) > (170 / 7)):
                         scale_factor = scale_factor * ((170 / 7) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'),
+                                          title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 81:
                     if((scale_factor * width) > (170 / 9)) or ((scale_factor * depth) > (170 / 9)):
                         scale_factor = scale_factor * ((170 / 9) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'),
+                                          title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 else:
                     None
 
@@ -142,10 +162,10 @@ class BLENDReader(MeshReader):
             # Checks scale message flag in settings file.
             if Blender.Blender.loadJsonFile('scale_message'):
                 if message and not self._curasplit:
-                    message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'),
-                                '[no_icon]', '[no_description]', button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-                    message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'),
-                                '[no_icon]', '[no_description]', button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
+                    message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'), '[no_icon]', '[no_description]',
+                                      button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+                    message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'), '[no_icon]', '[no_description]',
+                                      button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
                     message.actionTriggered.connect(self._openBlenderTrigger)
                     message.show()
 
@@ -298,7 +318,6 @@ class BLENDReader(MeshReader):
             import_file = 'bpy.ops.export_scene.{}(filepath = "{}", check_existing = False)'.format(Blender.file_extension, file_path)
         else:
             import_file = None
-            Logger.logException('e', '%s is not supported!', Blender.file_extension)
         return import_file
 
 
