@@ -313,4 +313,7 @@ class BLENDReader(MeshReader):
         finally:
             if os.path.isfile(temp_path):
                 os.remove(temp_path)
+            # Converting to .obj always creates a copy of it as .mtl (A library for used materials).
+            if os.path.isfile(temp_path[:-3] + 'mtl'):
+                os.remove(temp_path[:-3] + 'mtl')
         return node
