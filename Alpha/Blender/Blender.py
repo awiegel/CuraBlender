@@ -2,23 +2,21 @@
 import os
 import platform
 import glob
-import time
 import subprocess
 import json
 
 # Imports from QT.
 from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtCore import QUrl, QFileSystemWatcher
+from PyQt5.QtCore import QFileSystemWatcher
 
 # Imports from Uranium.
 from UM.Logger import Logger
 from UM.Message import Message
-from UM.Extension import Extension
-from UM.Scene.Selection import Selection
-from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
-from UM.Application import Application
+from UM.Tool import Tool  # The PluginObject we're going to extend.
 from UM.Mesh.ReadMeshJob import ReadMeshJob  # To reload a mesh when its file was changed.
+from UM.Application import Application
+from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
+from UM.Scene.Selection import Selection
 from UM.i18n import i18nCatalog
 
 # Imports from Cura.
@@ -34,25 +32,24 @@ global blender_path, file_extension, fs_watcher
 
 
 ##  Main class for blender plugin.
-class Blender(Extension):
-    global blender_path, fs_watcher
+class Blender(Tool):
+    ##  The constructor, which calls the super-class-contructor (Tool).
+    ##  Loads and sets all settings from settings file.
+    ##  Adds .blend as a supported file extension.
+    ##  Adds (stl, obj, x3d, ply) as supported file extensions for conversion.
+    ##  Adds menu items and the filewatcher trigger function.
     def __init__(self):
-        global fs_watcher, blender_path, file_extension
-        ##  The constructor, which calls the super-class-contructor (MeshReader).
-        ##  Adds .blend as a supported file extension.
-        ##  Adds menu items and the filewatcher trigger function.
+        global fs_watcher
         super().__init__()
+
+        # Loads and sets all settings from settings file.
+        self.loadAndSetSettings()
+
         self._supported_extensions = ['.blend']
         self._supported_foreign_extensions = ['stl', 'obj', 'x3d', 'ply']
-
-        self.setMenuName(i18n_catalog.i18nc('@item:inmenu', 'Blender'))
-        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Open in Blender'), self.openInBlender)
-        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'File Extension'), self.file_extension)
-
-        # Loads path to blender from settings file.
-        blender_path = self.loadJsonFile('blender_path')
-        # Loads preferred file extension from settings file.
-        file_extension = self.loadJsonFile('file_extension')
+        
+        # Properties used by the qml file.
+        self.setExposedProperties("LiveReload", "AutoArrangeOnReload", "AutoScaleOnRead", "ShowScaleMessage", "ImportType")
 
         # Adds filewatcher and it's connection for blender files.
         fs_watcher = QFileSystemWatcher()
@@ -92,6 +89,105 @@ class Blender(Extension):
                 json.dump(data, outfile, indent=4)
         except:
             None
+
+
+    ## Loads and sets all settings from settings file.
+    def loadAndSetSettings(self):
+        # Loads and sets the "live reload" option.
+        if self.loadJsonFile('live_reload'):
+            self._live_reload = True
+        else:
+            self._live_reload = False
+        # Loads and sets the "auto arrange on reload" option.
+        if self.loadJsonFile('auto_arrange_on_reload'):
+            self._auto_arrange_on_reload = True
+        else:
+            self._auto_arrange_on_reload = False
+        # Loads and sets the "auto scale on read" option.
+        if self.loadJsonFile('auto_scale_on_read'):
+            self._auto_scale_on_read = True
+        else:
+            self._auto_scale_on_read = False
+        # Loads and sets the "show scale message" option.
+        if self.loadJsonFile('show_scale_message'):
+            self._show_scale_message = True
+        else:
+            self._show_scale_message = False
+        
+        # Loads and sets the file extension.
+        self.loadFileExtension()
+
+        # Loads and sets the path to blender.
+        self.loadBlenderPath()
+
+
+    ## Loads and sets the file extension.
+    def loadFileExtension(self):
+        global file_extension
+        file_extension = self.loadJsonFile('file_extension')
+
+    ## Loads and sets the path to blender.
+    def loadBlenderPath(self):
+        global blender_path
+        blender_path = self.loadJsonFile('blender_path')
+    
+
+    ## Gets the state of the "live reload" option.
+    def getLiveReload(self):
+        return self._live_reload
+    
+    ## Gets the state of the "auto arrange on reload" option.
+    def getAutoArrangeOnReload(self):
+        return self._auto_arrange_on_reload
+    
+    ## Gets the state of the "auto scale on read" option.
+    def getAutoScaleOnRead(self):
+        return self._auto_scale_on_read
+    
+    ## Gets the state of the "show scale message" option.
+    def getShowScaleMessage(self):
+        return self._show_scale_message
+    
+    ## Gets the current import type.
+    def getImportType(self):
+        return file_extension
+
+
+    ## Sets the state of the "live reload" option.
+    def setLiveReload(self, value):
+        if value != self._live_reload:
+            self._live_reload = value
+            self.propertyChanged.emit()
+            self.writeJsonFile('live_reload', value)
+    
+    ## Sets the state of the "auto arrange on reload" option.
+    def setAutoArrangeOnReload(self, value):
+        if value != self._auto_arrange_on_reload:
+            self._auto_arrange_on_reload = value
+            self.propertyChanged.emit()
+            self.writeJsonFile('auto_arrange_on_reload', value)
+    
+    ## Sets the state of the "auto scale on read" option.
+    def setAutoScaleOnRead(self, value):
+        if value != self._auto_scale_on_read:
+            self._auto_scale_on_read = value
+            self.propertyChanged.emit()
+            self.writeJsonFile('auto_scale_on_read', value)
+    
+    ## Sets the state of the "show scale message" option.
+    def setShowScaleMessage(self, value):
+        if value != self._show_scale_message:
+            self._show_scale_message = value
+            self.propertyChanged.emit()
+            self.writeJsonFile('show_scale_message', value)
+    
+    ## Sets the import type to the given value.
+    def setImportType(self, value):
+        global file_extension
+        if value != file_extension:
+            file_extension = value
+            self.propertyChanged.emit()
+            self.writeJsonFile('file_extension', value)
 
 
     ##  Tries to set the path to blender automatically, if unsuccessful the user can set it manually.
@@ -204,14 +300,14 @@ class Blender(Extension):
                     message = Message(text=i18n_catalog.i18nc('@info','Select Object first'),
                                     title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
                     message.show()
-            # If one object is selecte, open it's file reference (file name)
+            # If one object is selected, opens it's file reference (file name).
             elif len(Selection.getAllSelectedObjects()) == 1:
                 for selection in Selection.getAllSelectedObjects():
                     file_path = selection.getMeshData().getFileName()
                     if '_curasplit_' in file_path:
                         file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
                     self.openBlender(file_path)
-            # If multiple objects are selected, check if they belong to more than one file.
+            # If multiple objects are selected, checks if they belong to more than one file.
             else:
                 files = set()
                 for selection in Selection.getAllSelectedObjects():
@@ -273,7 +369,7 @@ class Blender(Extension):
 
     
     ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.
-    ##  Explicit for foreign file types. (stl, obj, x3d, ply)
+    ##  Explicit for foreign file types (stl, obj, x3d, ply).
     #
     #   \param path  The path to the changed foreign file.
     def _foreignFileChanged(self, path):
@@ -298,38 +394,6 @@ class Blender(Extension):
         os.remove(path + '1')
         # Adds new filewatcher reference, because cura removes filewatcher automatically for other file types after reading.
         self._foreign_file_watcher.addPath(path)
-
-
-    ##  The user can choose in what file format the blender files should be converted to.
-    def file_extension(self):
-        message = Message(text=i18n_catalog.i18nc('@info','File Extension'),
-                          title=i18n_catalog.i18nc('@info:title', 'Choose your File Extension.'))
-        message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'),
-                          '[no_icon]', '[no_description]')
-        message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'),
-                          '[no_icon]', '[no_description]')
-        message.addAction('x3d', i18n_catalog.i18nc('@action:button', 'x3d'),
-                          '[no_icon]', '[no_description]')
-        message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'),
-                          '[no_icon]', '[no_description]')
-        message.actionTriggered.connect(self._fileExtensionTrigger)
-        message.show()
-
-
-    ## The trigger function for the file_extension function.
-    def _fileExtensionTrigger(self, message, action):
-        global file_extension
-        if action == 'stl':
-            file_extension = 'stl'
-        elif action == 'ply':
-            file_extension = 'ply'
-        elif action == 'x3d':
-            file_extension = 'x3d'
-        elif action == 'obj':
-            file_extension = 'obj'
-        else:
-            None
-        self.writeJsonFile('file_extension', file_extension)
     
 
     ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.
@@ -337,14 +401,13 @@ class Blender(Extension):
     #   \param path  The path to the changed blender file.
     def fileChanged(self, path):
         # Checks auto reload flag in settings file.
-        if self.loadJsonFile('auto_reload'):
+        if self.loadJsonFile('live_reload'):
             job = ReadMeshJob(path)
             job.finished.connect(self._readMeshFinished)
             job.start()
         # Adds file to file watcher in case the auto reload flag gets changed during runtime.
         else:
             fs_watcher.addPath(path)
-
 
 
     ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.
@@ -391,6 +454,6 @@ class Blender(Extension):
                 job._node.getMeshData()._file_name = temp_path
 
         # Checks auto arrange flag in settings file.
-        if self.loadJsonFile('auto_arrange'):
-            # Arranges the complete build plate after reloading a file. Can be on/off in the settings.
+        if self.loadJsonFile('auto_arrange_on_reload'):
+            # Arranges the complete build plate after reloading a file. Can be set on/off in the settings.
             Application.getInstance().arrangeAll()
