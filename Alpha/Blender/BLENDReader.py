@@ -4,18 +4,14 @@ import random
 import subprocess
 from subprocess import PIPE
 
-# Imports from QT.
-from PyQt5.QtCore import QUrl
-from PyQt5.QtGui import QDesktopServices
-
 # Imports from Uranium.
 from UM.Mesh.MeshReader import MeshReader
 from UM.Logger import Logger
 from UM.Message import Message
 from UM.Application import Application
+from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
 from UM.Math.Vector import Vector
 from UM.i18n import i18nCatalog
-from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
 
 # Imports from Cura.
 from cura.Scene.CuraSceneNode import CuraSceneNode
@@ -32,8 +28,10 @@ i18n_catalog = i18nCatalog('uranium')
 class BLENDReader(MeshReader):
     ##  The constructor, which calls the super-class-contructor (MeshReader).
     ##  Adds .blend as a supported file extension.
+    ##  Adds (stl, obj, x3d, ply) as supported file extensions for conversion.
     def __init__(self) -> None:
         super().__init__()
+        # The supported extensions for converting the file.
         self._supported_extensions = ['.blend']
         self._supported_foreign_extensions = ['stl', 'obj', 'x3d', 'ply']
 
@@ -54,14 +52,14 @@ class BLENDReader(MeshReader):
         if not Blender.Blender.verifyBlenderPath():
             # Failure message already gets called at other place.
             Logger.logException('e', 'Problems with path to blender!')
-        # Checks if file extension for converting is supported (stl, obj, x3d, ply).
+        # Checks if file extension for conversion is supported (stl, obj, x3d, ply).
         elif Blender.file_extension not in self._supported_foreign_extensions:
             Logger.logException('e', '%s file extension is not supported!', Blender.file_extension)
             message = Message(text=i18n_catalog.i18nc('@info', '{} file extension is not supported!\nAllowed: {}'.format(Blender.file_extension, self._supported_foreign_extensions)),
                               title=i18n_catalog.i18nc('@info:title', 'Unsupported file extension'))
             message.show()
-        # Checks if path to blender is set.
-        elif Blender.blender_path:
+        # Path to blender and file extension is correct. Continues.
+        else:
             self._curasplit = False
 
             temp_path = self._convertAndOpenFile(file_path, nodes)
@@ -86,24 +84,23 @@ class BLENDReader(MeshReader):
                 message = Message(text=i18n_catalog.i18nc('@info', '{}\ndoes not contain any objects.'.format(file_path)),
                                   title=i18n_catalog.i18nc('@info:title', 'No object found'))
                 message.show()
-        else:
-            None
 
         return nodes
 
 
-    # After reading exported file change file reference to .blend clone
+    # After reading exported file change file reference to .blend clone.
     def _changeWatchedFile(self, old_path, new_path):
         Application.getInstance().getController().getScene().removeWatchedFile(old_path)
         Blender.fs_watcher.addPath(new_path)
 
 
-    # Reads all nodes contained in the file
-    # Calculates the needed scale factor based on equivalence classes and finally scales all nodes equally
+    # Reads all nodes contained in the file.
+    # Calculates the needed scale factor based on equivalence classes and finally scales all nodes equally.
     def _calculateAndSetScale(self, nodes):
         # Checks auto scale flag in settings file.
-        if Blender.Blender.loadJsonFile('auto_scale'):
+        if Blender.Blender.loadJsonFile('auto_scale_on_read'):
             scale_factors = []
+            # Calculates the scale factor for all nodes.
             for node in nodes:
                 bounding_box = node.getBoundingBox()
                 width = bounding_box.width
@@ -113,13 +110,13 @@ class BLENDReader(MeshReader):
                 message = None
                 scale_factor = 1
 
-                # Checks the minimum size of the object
+                # Checks the minimum size of the object.
                 if((min(width, height, depth)) < 5):
                     if not min(width, height, depth) == 0:
                         scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
                         message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size'),
                                           title=i18n_catalog.i18nc('@info:title', 'Object was too small'))
-                # Checks the maximum height of the object
+                # Checks the maximum height of the object.
                 if(scale_factor * height) > 290:
                     scale_factor = scale_factor * (290 / (scale_factor * height))
                     message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size'),
@@ -158,7 +155,7 @@ class BLENDReader(MeshReader):
 
                 scale_factors.append(scale_factor)
 
-            # Calculates the average scale factor
+            # Calculates the average scale factor.
             scale_factor = sum(scale_factors) / len(scale_factors)
 
             # Scales all nodes with the same factor.
@@ -166,7 +163,7 @@ class BLENDReader(MeshReader):
                 node.scale(scale = Vector(scale_factor,scale_factor,scale_factor))
 
             # Checks scale message flag in settings file.
-            if Blender.Blender.loadJsonFile('scale_message'):
+            if Blender.Blender.loadJsonFile('show_scale_message'):
                 if message and not self._curasplit:
                     message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'), '[no_icon]', '[no_description]',
                                       button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
@@ -176,23 +173,15 @@ class BLENDReader(MeshReader):
                     message.show()
 
 
-    ##  The trigger connected with open blender function
+    ##  The trigger connected with open blender function.
     #
     #   \param message  The opened message to hide with ignore button.
     #   \param action   The pressed button on the message.
     def _openBlenderTrigger(self, message, action):
         if action == 'Open in Blender':
-            if Blender.blender_path is None:
-                QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
-            elif self._file_path is None:
-                subprocess.Popen(Blender.blender_path, shell = True)
-            else:
-                subprocess.Popen((Blender.blender_path, self._file_path), shell = True)
-        elif action == 'Ignore':
-            message.hide()
-        else:
-            None
-    
+            subprocess.Popen((Blender.blender_path, self._file_path), shell = True)
+        message.hide()
+
 
     ##  Converts the original file to a supported file extension based on prechosen preference and reads it.
     #
@@ -263,7 +252,7 @@ class BLENDReader(MeshReader):
         return temp_path
 
 
-    ##  
+    ##  Creates a temporary file with the random function to guarantee uniqueness. If multiple objects inside one file adds index.
     #
     #   \param file_path  The path of the original file.
     #   \param index      If file contains multiple objects, it indicates the number of the current object.
@@ -313,7 +302,7 @@ class BLENDReader(MeshReader):
         return command
 
 
-    ##  Converts the original file into a new file with pre-choosed file extension.
+    ##  Converts the original file into a new file with prechosen file extension.
     #
     #   \param  file_path  The original file path of the opened file.
     #   \return            String with the instruction for converting the file.
@@ -323,7 +312,8 @@ class BLENDReader(MeshReader):
         elif Blender.file_extension == 'obj' or Blender.file_extension == 'x3d':
             import_file = 'bpy.ops.export_scene.{}(filepath = "{}", check_existing = False)'.format(Blender.file_extension, file_path)
         else:
-            import_file = None
+            # Unreachable statement, because allowed file extension got already verified.
+            None
         return import_file
 
 

@@ -40,6 +40,7 @@ class BLENDWriter(MeshWriter):
 
         # The return value: The status either successful or unsuccessful.
         success = True
+
         # Only continues if correct path to blender is set.
         if Blender.Blender.verifyBlenderPath():
             file_list = self._createFileList(nodes)
@@ -75,7 +76,7 @@ class BLENDWriter(MeshWriter):
 
     ##  Creates a list (String) with instructions for every file in the file list.
     #
-    #   \param file_list  File list with paths nodes.
+    #   \param file_list  File list with paths of nodes.
     #   \return           A list (String) with all files with the .blend extension.
     #   \return           A list (String) with all files with different file extensions.
     def _createExecuteList(self, file_list):
@@ -93,9 +94,9 @@ class BLENDWriter(MeshWriter):
                 execute_list = execute_list + 'bpy.ops.import_scene.obj(filepath = "{}");'.format(file_path)
             elif file_path.endswith('.x3d'):
                 execute_list = execute_list + 'bpy.ops.import_scene.x3d(filepath = "{}");'.format(file_path)
-            # Ignore for unsupported file extension.
+            # Ignore objects with unsupported file extension.
             else:
-                None
+                Logger.logException('e', '%s\nhas unsupported file extension and was ignored!', file_path)
         return (blender_files, execute_list)
 
 
