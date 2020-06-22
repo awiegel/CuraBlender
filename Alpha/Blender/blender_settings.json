@@ -1,8 +1,8 @@
 {
-    "blender_path": "",
+    "live_reload": true,
     "file_extension": "stl",
-    "auto_reload": true,
-    "auto_arrange": true,
-    "auto_scale": true,
-    "scale_message": true
+    "auto_scale_on_read": true,
+    "show_scale_message": true,
+    "blender_path": "",
+    "auto_arrange_on_reload": true
 }
