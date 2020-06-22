@@ -15,6 +15,7 @@ def removeScene():
         bpy.context.collection.objects.unlink(bpy.context.collection.objects[node])
         objects -= 1
 
+
 ##  Loads the given .blend file as a library.
 #
 #   \param file_path  The path of the .blend file.
@@ -44,7 +45,7 @@ def removeDecorators(objects, library = None):
         node += 1
 
 
-##  Find the object with the given index and link tit to the scene.
+##  Finds the object with the given index and links it to the scene.
 #
 #   \param objects    A list of objects.
 #   \param index      The index of the object. Used for files with multiple objects.
@@ -57,42 +58,45 @@ def findIndexAndLink(objects, index, file_path = None):
             bpy.context.collection.objects.link(objects[node])
 
 
-##  Reposition all objects in the blender file. Used in 'Write' mode.
+##  Repositions all objects in the blender file along the x-axis. Used in 'Write' mode.
 def repositionObjects():
-    # angle = radian / numbers_of_ob
-    A = 6.283185307179586476925286766559 / len(bpy.context.collection.objects)
-
-    #dimensions = (0, 0, 0)
-    #for node in bpy.context.collection.objects:
-    #    dimensions += bpy.context.collection.objects[node].dimensions
-    #dimensions /= len(bpy.context.collection.objects)
-
-    # radius
-    R = 50 * len(bpy.context.collection.objects)
-
-    # loop number_of_ob
+    # Calculates the average distance between nodes.
+    distance = 0
     for node in range(len(bpy.context.collection.objects)):
-        if bpy.context.collection.objects[node].type == "MESH":
-            bpy.context.collection.objects[node].location[0] = math.sin(A*node)*R       # x = sine(angle*i)*radius 
-            bpy.context.collection.objects[node].location[1] = math.cos(A*node)*R       # y = cosine(angle*i)*radius
+        distance += bpy.context.collection.objects[node].dimensions[0]
+    distance /= 10
+
+    for node in range(len(bpy.context.collection.objects)):
+        # Positions first node.
+        if node == 0:
+            bpy.context.collection.objects[node].location[0] = 0
+            bpy.context.collection.objects[node].location[1] = 0
             bpy.context.collection.objects[node].location[2] = 0
+            length = (bpy.context.collection.objects[node].dimensions[0] / 2) + distance
+        # Positions every other node.
+        else:
+            bpy.context.collection.objects[node].location[0] = length + (bpy.context.collection.objects[node].dimensions[0] / 2)
+            bpy.context.collection.objects[node].location[1] = 0
+            bpy.context.collection.objects[node].location[2] = 0
+            length += bpy.context.collection.objects[node].dimensions[0] + distance
 
 
 ##  Main program. 
 def main():
     program = sys.argv[-1]
 
+    # Program for counting nodes inside a file.
     if program == 'Count nodes':
         nodes = 0
         for node in range(len(bpy.context.collection.objects)):
             if bpy.context.collection.objects[node].type == "MESH":
                 nodes += 1
         print(nodes)
-
+    # Program for loading files with a single node.
     elif program == 'Single node':
         removeDecorators(bpy.context.collection.objects)
         exec(sys.argv[-2])
-
+    # Program for loading files with multiple nodes.
     elif program == 'Multiple nodes':
         file_path = sys.argv[-2]
         index = int(sys.argv[-3])
@@ -104,13 +108,13 @@ def main():
         findIndexAndLink(objects, index)
 
         exec(sys.argv[-4])
-
+    # Program for creating a file.
     elif program == 'Write':
         blender_files = sys.argv[-2]
         blender_files = blender_files.split(';')
         
         removeScene()
-
+        # Process blender files.
         for file_path in list(filter(None, blender_files)):
             if '_curasplit_' in file_path:
                 index = int(file_path[file_path.index('_curasplit_') + 11:][:-6]) - 1
@@ -129,6 +133,7 @@ def main():
 
         execute_list = sys.argv[-3]
         execute_list = execute_list.split(';')
+        # Process foreign files.
         for execute in list(filter(None, execute_list)):
             exec(execute)
             for node in bpy.context.collection.objects:
@@ -136,10 +141,13 @@ def main():
                     file_name = os.path.basename(execute[execute.index('filepath = ') + 12:][:-2])
                     node.name = '{}_{}_NEW'.format(file_name.rsplit('.', 1)[0], file_name.rsplit('.', 1)[-1])
 
+        # Reposition all objects.
         repositionObjects()
 
+        # Save the file on given filepath.
         bpy.ops.wm.save_as_mainfile(filepath = '{}'.format(sys.argv[-4]))
 
+    # Wrong program call.
     else:
         None
 
