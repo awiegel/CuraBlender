@@ -29,18 +29,31 @@ Item
     {
         var type = currentImportType
 
-        // Sets checked state of mesh type buttons.
+        // Sets checked state of import type buttons.
         stlButton.checked = type === stlImportType
         objButton.checked = type === objImportType
         x3dButton.checked = type === x3dImportType
         plyButton.checked = type === plyImportType
+
     }
     
     // Function for the import type buttons.
     function setImportType(type)
     {
-        // Calls setImportType function and sets current import type.
-        UM.ActiveTool.setProperty("ImportType", type)
+        if (type != currentImportType)
+        {
+            // Calls setImportType function and sets current import type.
+            UM.ActiveTool.setProperty("ImportType", type)
+        }
+        // Deselection fix for current import type. Does not call the setImportType function.
+        else
+        {
+            // Sets checked state of import type buttons.
+            stlButton.checked = type === stlImportType
+            objButton.checked = type === objImportType
+            x3dButton.checked = type === x3dImportType
+            plyButton.checked = type === plyImportType
+        }
     }
 
     // Open in Blender button.
