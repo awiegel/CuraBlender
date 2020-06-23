@@ -401,7 +401,7 @@ class Blender(Tool):
     #   \param path  The path to the changed blender file.
     def fileChanged(self, path):
         # Checks auto reload flag in settings file.
-        if self.loadJsonFile('live_reload'):
+        if self.live_reload:
             job = ReadMeshJob(path)
             job.finished.connect(self._readMeshFinished)
             job.start()
@@ -454,6 +454,6 @@ class Blender(Tool):
                 job._node.getMeshData()._file_name = temp_path
 
         # Checks auto arrange flag in settings file.
-        if self.loadJsonFile('auto_arrange_on_reload'):
+        if self._auto_arrange_on_reload:
             # Arranges the complete build plate after reloading a file. Can be set on/off in the settings.
             Application.getInstance().arrangeAll()
