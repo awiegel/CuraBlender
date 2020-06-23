@@ -3,10 +3,10 @@ This Plugin provides support for reading/writing BLEND files directly without im
 It also offers extra features that are described in this document.
 
 ## Table of contents
-- [1. Installation](#1-Installation)
-- [2. Functionality](#2-Functionality)
-- [3. Explanation of all files](#3-Explanation-of-all-files)
-- [4. Potential problems](#4-Potential-problems)
+- [1. Installation](#1-installation)
+- [2. Functionality](#2-functionality)
+- [3. Explanation of all files](#3-explanation-of-all-files)
+- [4. Potential problems](#4-potential-problems)
 
 ## 1. Installation
 To install this plugin simply drag this folder unzipped into your plugins folder.
