@@ -86,7 +86,7 @@ class Blender(Tool):
         try:
             with open('plugins/Blender/blender_settings.json', 'w+') as outfile:
                 data[key] = value
-                json.dump(data, outfile, indent=4)
+                json.dump(data, outfile, indent=4, sort_keys=False)
         except:
             None
 
