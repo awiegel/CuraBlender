@@ -88,8 +88,8 @@ def main():
     # Program for counting nodes inside a file.
     if program == 'Count nodes':
         nodes = 0
-        for node in range(len(bpy.context.collection.objects)):
-            if bpy.context.collection.objects[node].type == "MESH":
+        for node in range(len(bpy.data.objects)):
+            if bpy.data.objects[node].type == "MESH":
                 nodes += 1
         print(nodes)
     # Program for loading files with a single node.
