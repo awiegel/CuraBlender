@@ -401,7 +401,7 @@ class Blender(Tool):
     #   \param path  The path to the changed blender file.
     def fileChanged(self, path):
         # Checks auto reload flag in settings file.
-        if self.live_reload:
+        if self._live_reload:
             job = ReadMeshJob(path)
             job.finished.connect(self._readMeshFinished)
             job.start()
