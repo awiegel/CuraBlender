@@ -1,13 +1,16 @@
 # Imports from the python standard library.
 import os
 import platform
+import json
 import glob
 import subprocess
-import json
+from subprocess import PIPE
 
 # Imports from QT.
 from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtCore import QFileSystemWatcher
+from PyQt5.QtCore import QFileSystemWatcher, QUrl
+from PyQt5.QtGui import QDesktopServices
+
 
 # Imports from Uranium.
 from UM.Logger import Logger
@@ -28,7 +31,10 @@ i18n_catalog = i18nCatalog('uranium')
 
 
 # Global variables used by our other modules.
-global blender_path, file_extension, fs_watcher
+global blender_path, file_extension, fs_watcher, outdated_blender_version
+
+# A flag that indicates a outdated blender version. 
+outdated_blender_version = False
 
 
 ##  Main class for blender plugin.
@@ -199,7 +205,7 @@ class Blender(Tool):
             blender_path = self.loadJsonFile('blender_path')
         
         # Stops here because blender path from settings file is correct.
-        if not self.verifyBlenderPath():
+        if not self.verifyBlenderPath() and not outdated_blender_version:
             system = platform.system()
             # Supports multi-platform
             if system == 'Windows':
@@ -222,17 +228,57 @@ class Blender(Tool):
     ##  Verifies the path to blender.
     @classmethod
     def verifyBlenderPath(self):
+        global outdated_blender_version
         correct_blender_path = False
         try:
             # Checks if blender path variable is set and the path really exists.
             if blender_path and os.path.exists(blender_path):
+                command = (
+                    blender_path,
+                    '--background',
+                    '--python-expr',
+                    'import bpy;'
+                    'print(bpy.app.version >= (2, 80, 0))'
+                )
                 # Calls blender in the background and jumps to the exception if it's not blender and therefor returns false.
-                subprocess.check_call((blender_path, '--background'), shell=True)
-                correct_blender_path = True
+                # Also checks if the version of blender is compatible.
+                version = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
+                for nextline in version.stdout.splitlines():
+                    if nextline == 'True':
+                        correct_blender_path = True
+                    elif nextline == 'False':
+                        if not outdated_blender_version:
+                            outdated_blender_version = True
+                            Logger.logException('e', 'Your version of blender is outdated. Blender version 2.80 or higher is required!')
+                            message = Message(text=i18n_catalog.i18nc('@info', 'Please update your blender version'),
+                                             title=i18n_catalog.i18nc('@info:title', 'Outdated blender version'))
+                            message.addAction('Download Blender', i18n_catalog.i18nc('@action:button', 'Download Blender'), '[no_icon]', '[no_description]',
+                                             button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+                            message.addAction('Set new Blender path', i18n_catalog.i18nc('@action:button', 'Set new Blender path'), '[no_icon]', '[no_description]',
+                                             button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
+                            message.actionTriggered.connect(self._downloadBlenderTrigger)
+                            message.show()
+                    else:
+                        None
         except:
             Logger.logException('e', 'Problems with path to blender!')
         finally:
             return correct_blender_path
+
+
+    ##  The trigger connected for downloading new blender version.
+    #
+    #   \param message  The opened message to hide with ignore button.
+    #   \param action   The pressed button on the message.
+    @classmethod
+    def _downloadBlenderTrigger(self, message, action):
+        message.hide()
+        if action == 'Download Blender':
+            QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
+        elif action == 'Set new Blender path':
+            self._openFileDialog(blender_path, platform.system())
+        else:
+            None
 
 
     ##  The user can set the path to blender manually. Gets called when blender isn't found in the expected place.
@@ -242,9 +288,11 @@ class Blender(Tool):
     #   \return              The correctly set path to blender.
     @classmethod
     def _openFileDialog(self, blender_path, system):
-        message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually'),
-                          title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
-        message.show()
+        if not outdated_blender_version:
+            message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually'),
+                            title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
+            message.show()
+
         dialog = QFileDialog()
         dialog.setAcceptMode(QFileDialog.AcceptOpen)
         # Supports multi-platform
@@ -263,9 +311,12 @@ class Blender(Tool):
         dialog.setViewMode(QFileDialog.Detail)
         # Opens the file explorer and checks if file is selected.
         if dialog.exec_():
-            message.hide()
+            if not outdated_blender_version:
+                message.hide()
         else:
-            message.hide()
+            if not outdated_blender_version:
+                message.hide()
+            
             message = Message(text=i18n_catalog.i18nc('@info', 'No blender path was selected'),
                               title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
             message.show()
