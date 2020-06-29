@@ -1,8 +1,0 @@
-{
-    "name": "Python Console",
-    "author": "Adrian Wagner",
-    "version": "1.0.0",
-    "supported_sdk_versions": ["6.0.0","6.1.0","6.2.0","6.3.0","7.0.0","7.1.0"],
-    "description": "Interact with Cura's source right in Cura itself.",
-    "catalog": "PythonConsole"
-}
