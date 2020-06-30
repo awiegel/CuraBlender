@@ -385,7 +385,9 @@ class Blender(Tool):
     #   \param file_path  The path of the file to open in blender.
     def openBlender(self, file_path):
         # Gets the extension of the file.
-        current_file_extension = os.path.basename(file_path).partition('.')[2]
+        current_file_extension = os.path.splitext(file_path)
+        current_file_extension = current_file_extension[1][1:]
+
         # Checks if file is a blender file.
         if current_file_extension == 'blend':
             if '_curasplit_' in file_path:
