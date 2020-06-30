@@ -42,14 +42,14 @@ class BLENDReader(MeshReader):
     #   \return           A list of all nodes contained in the file.
     def read(self, file_path):
         # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
-        if not Blender.blender_path or not Blender.Blender.verifyBlenderPath():
+        if not Blender.verified_blender and (not Blender.blender_path or not Blender.Blender.verifyBlenderPath()):
             Blender.Blender.setBlenderPath()
 
         # The return value: A list all nodes gets appended to. If file only contains one object, the list will be of length one.
         nodes = []
 
         # Only continues if correct path to blender is set.
-        if not Blender.Blender.verifyBlenderPath():
+        if not Blender.verified_blender:
             # Failure message already gets called at other place.
             Logger.logException('e', 'Problems with path to blender!')
         # Checks if file extension for conversion is supported (stl, obj, x3d, ply).
@@ -114,12 +114,12 @@ class BLENDReader(MeshReader):
                 if((min(width, height, depth)) < 5):
                     if not min(width, height, depth) == 0:
                         scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size'),
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size.'),
                                           title=i18n_catalog.i18nc('@info:title', 'Object was too small'))
                 # Checks the maximum height of the object.
                 if(scale_factor * height) > 290:
                     scale_factor = scale_factor * (290 / (scale_factor * height))
-                    message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size'),
+                    message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size.'),
                                       title=i18n_catalog.i18nc('@info:title', 'Object was too high'))
 
                 # Checks the maximum width/depth based on number of objects, because cura doesn't allow to manipulate the position of the object.
@@ -128,27 +128,27 @@ class BLENDReader(MeshReader):
                 if len(nodes) == 1:
                     if((scale_factor * width) > 170) or ((scale_factor * depth) > 170):
                         scale_factor = scale_factor * (170 / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too broad and got scaled down to maximum print size'),
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too broad and got scaled down to maximum print size.'),
                                           title=i18n_catalog.i18nc('@info:title', 'Object was too broad'))
                 elif len(nodes) <= 9:
                     if((scale_factor * width) > (170 / 3)) or ((scale_factor * depth) > (170 / 3)):
                         scale_factor = scale_factor * ((170 / 3) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'),
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
                                           title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 25:
                     if((scale_factor * width) > (170 / 5)) or ((scale_factor * depth) > (170 / 5)):
                         scale_factor = scale_factor * ((170 / 5) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'), 
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'), 
                                           title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 49:
                     if((scale_factor * width) > (170 / 7)) or ((scale_factor * depth) > (170 / 7)):
                         scale_factor = scale_factor * ((170 / 7) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'),
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
                                           title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 81:
                     if((scale_factor * width) > (170 / 9)) or ((scale_factor * depth) > (170 / 9)):
                         scale_factor = scale_factor * ((170 / 9) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size'),
+                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
                                           title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 else:
                     None

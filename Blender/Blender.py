@@ -33,8 +33,10 @@ i18n_catalog = i18nCatalog('uranium')
 # Global variables used by our other modules.
 global blender_path, file_extension, fs_watcher, outdated_blender_version
 
-# A flag that indicates a outdated blender version. 
+# A flag that indicates an outdated blender version. 
 outdated_blender_version = False
+# A flag that indicates an already checked and confirmed blender version. 
+verified_blender = False
 
 
 ##  Main class for blender plugin.
@@ -198,14 +200,14 @@ class Blender(Tool):
 
     ##  Tries to set the path to blender automatically, if unsuccessful the user can set it manually.
     @classmethod
-    def setBlenderPath(self):
+    def setBlenderPath(self, outdated = False):
         global blender_path
         # Checks blender path in settings file.
         if self.loadJsonFile('blender_path'):
             blender_path = self.loadJsonFile('blender_path')
         
         # Stops here because blender path from settings file is correct.
-        if not self.verifyBlenderPath() and not outdated_blender_version:
+        if (not self.verifyBlenderPath() and not outdated_blender_version) or outdated:
             system = platform.system()
             # Supports multi-platform
             if system == 'Windows':
@@ -221,15 +223,16 @@ class Blender(Tool):
             # If unsuccessful the user can set it manually.
             if not os.path.exists(blender_path):
                 blender_path = self._openFileDialog(blender_path, system)
-            # Adds blender path in settings file (needs permission).
-            self.writeJsonFile('blender_path', blender_path)
+
+        # Adds blender path in settings file (needs permission).
+        self.writeJsonFile('blender_path', blender_path)
 
 
     ##  Verifies the path to blender.
     @classmethod
     def verifyBlenderPath(self):
-        global outdated_blender_version
-        correct_blender_path = False
+        global outdated_blender_version, verified_blender
+        verified_blender = False
         try:
             # Checks if blender path variable is set and the path really exists.
             if blender_path and os.path.exists(blender_path):
@@ -245,12 +248,12 @@ class Blender(Tool):
                 version = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
                 for nextline in version.stdout.splitlines():
                     if nextline == 'True':
-                        correct_blender_path = True
+                        verified_blender = True
                     elif nextline == 'False':
                         if not outdated_blender_version:
                             outdated_blender_version = True
                             Logger.logException('e', 'Your version of blender is outdated. Blender version 2.80 or higher is required!')
-                            message = Message(text=i18n_catalog.i18nc('@info', 'Please update your blender version'),
+                            message = Message(text=i18n_catalog.i18nc('@info', 'Please update your blender version.'),
                                              title=i18n_catalog.i18nc('@info:title', 'Outdated blender version'))
                             message.addAction('Download Blender', i18n_catalog.i18nc('@action:button', 'Download Blender'), '[no_icon]', '[no_description]',
                                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
@@ -263,7 +266,7 @@ class Blender(Tool):
         except:
             Logger.logException('e', 'Problems with path to blender!')
         finally:
-            return correct_blender_path
+            return verified_blender
 
 
     ##  The trigger connected for downloading new blender version.
@@ -272,11 +275,11 @@ class Blender(Tool):
     #   \param action   The pressed button on the message.
     @classmethod
     def _downloadBlenderTrigger(self, message, action):
-        message.hide()
         if action == 'Download Blender':
             QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
         elif action == 'Set new Blender path':
-            self._openFileDialog(blender_path, platform.system())
+            message.hide()
+            self.setBlenderPath(outdated=True)
         else:
             None
 
@@ -288,10 +291,9 @@ class Blender(Tool):
     #   \return              The correctly set path to blender.
     @classmethod
     def _openFileDialog(self, blender_path, system):
-        if not outdated_blender_version:
-            message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually'),
-                            title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
-            message.show()
+        message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually.'),
+                        title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
+        message.show()
 
         dialog = QFileDialog()
         dialog.setAcceptMode(QFileDialog.AcceptOpen)
@@ -311,15 +313,18 @@ class Blender(Tool):
         dialog.setViewMode(QFileDialog.Detail)
         # Opens the file explorer and checks if file is selected.
         if dialog.exec_():
-            if not outdated_blender_version:
-                message.hide()
+            message.hide()
+            message = Message(text=i18n_catalog.i18nc('@info', 'A new path to blender was set.\nPlease try again.'),
+                              title=i18n_catalog.i18nc('@info:title', 'New Blender path set'))
+            message.show()
+            # Adds blender path in settings file (needs permission).
+            self.writeJsonFile('blender_path', blender_path)
         else:
-            if not outdated_blender_version:
-                message.hide()
-            
-            message = Message(text=i18n_catalog.i18nc('@info', 'No blender path was selected'),
+            message.hide()
+            message = Message(text=i18n_catalog.i18nc('@info', 'No blender path was selected.'),
                               title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
             message.show()
+
         # Gets the selected blender path from file explorer.
         blender_path = ''.join(dialog.selectedFiles())
         return blender_path
@@ -328,11 +333,11 @@ class Blender(Tool):
     ##  Checks if the selection of objects is correct and allowed and calls the actual function to open the file. 
     def openInBlender(self):
         # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
-        if not blender_path or not self.verifyBlenderPath():
+        if not verified_blender and (not blender_path or not self.verifyBlenderPath()):
             self.setBlenderPath()
 
         # Only continues if correct path to blender is set.
-        if self.verifyBlenderPath():
+        if verified_blender:
             # If no object is selected, check if the objects belong to more than one file.
             if len(Selection.getAllSelectedObjects()) == 0:
                 open_files = set()
@@ -348,7 +353,7 @@ class Blender(Tool):
                 if len(open_files) == 1:
                     self.openBlender(open_files.pop())
                 else:                    
-                    message = Message(text=i18n_catalog.i18nc('@info','Select Object first'),
+                    message = Message(text=i18n_catalog.i18nc('@info','Select Object first.'),
                                     title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
                     message.show()
             # If one object is selected, opens it's file reference (file name).

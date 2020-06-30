@@ -35,14 +35,14 @@ class BLENDWriter(MeshWriter):
     #   \return        Always true, because the actual writing happens internal and not in this job.
     def write(self, stream, nodes, mode = MeshWriter.OutputMode.BinaryMode):
         # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
-        if not Blender.blender_path or not Blender.Blender.verifyBlenderPath():
+        if not Blender.verified_blender and (not Blender.blender_path or not Blender.Blender.verifyBlenderPath()):
             Blender.Blender.setBlenderPath()
 
         # The return value: The status either successful or unsuccessful.
         success = True
 
         # Only continues if correct path to blender is set.
-        if Blender.Blender.verifyBlenderPath():
+        if Blender.verified_blender:
             file_list = self._createFileList(nodes)
             
             (blender_files, execute_list) = self._createExecuteList(file_list)
