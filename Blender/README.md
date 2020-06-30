@@ -1,3 +1,5 @@
+<div style="text-align: right"> <strong> Authors: </strong> Alexander Wiegel & Yusuf Ay </div>
+
 # Blender <img align="right" width="10%" height="10%" src="images/documentation/blender_logo.png" />
 This Plugin provides support for reading/writing BLEND files directly without importing/exporting. \
 It also offers extra features that are described in this document.
@@ -66,7 +68,8 @@ The next time the user starts cura, those settings will be loaded.
 
 <div class="page"/>
 
-**Example Workflow:** The picture below shows an example of how the workflow with this plugin could look like. \
+**Example Workflow:** \
+The picture below shows an example of how the workflow with this plugin could look like. \
 <img align="center" width="100%" height="100%" src="images/documentation/parallel_workflow.png" title="Example workflow" />
 
 <br/>
