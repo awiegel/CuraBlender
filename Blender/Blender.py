@@ -444,12 +444,21 @@ class Blender(Tool):
             '--', execute_list
         )
         subprocess.run(command, shell = True)
+        
+        if os.path.isfile(export_path):
+            job = ReadMeshJob(export_path)
+            job.finished.connect(self._readMeshFinished)
+            job.start()
+            # Give process time while waiting for the job to finish.
+            while not job.isFinished():
+                job.yieldThread()
+            # Remove temporary export file. Original foreign file, was not overwritten and the node still got it's reference in case of an undo.
+            os.remove(export_path)
 
-        job = ReadMeshJob(export_path)
-        job.finished.connect(self._readMeshFinished)
-        job.start()
-        # Instead of overwriting files, blender saves the old one with .blend1 extension. We don't want this file at all, but need the original one for the file watcher.
-        os.remove(path + '1')
+        if os.path.isfile(path + '1'):
+            # Instead of overwriting files, blender saves the old one with .blend1 extension. We don't want this file at all, but need the original one for the file watcher.
+            os.remove(path + '1')
+    
         # Adds new filewatcher reference, because cura removes filewatcher automatically for other file types after reading.
         self._foreign_file_watcher.addPath(path)
     
@@ -463,9 +472,14 @@ class Blender(Tool):
             job = ReadMeshJob(path)
             job.finished.connect(self._readMeshFinished)
             job.start()
-        # Adds file to file watcher in case the auto reload flag gets changed during runtime.
+        # Refreshes file in file watcher in case the auto reload flag gets changed during runtime.
         else:
+            fs_watcher.removePath(path)
             fs_watcher.addPath(path)
+
+        if os.path.isfile(path + '1'):
+            # Instead of overwriting files, blender saves the old one with .blend1 extension. We don't want this file at all, but need the original one for the file watcher.
+            os.remove(path + '1')
 
 
     ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.
