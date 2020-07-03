@@ -61,8 +61,11 @@ class BLENDReader(MeshReader):
         # Path to blender and file extension is correct. Continues.
         else:
             self._curasplit = False
+            self._check = False
+            self._file_path = file_path
 
             temp_path = self._convertAndOpenFile(file_path, nodes)
+
             # Checks if file does not contain any objects.
             if temp_path == 'no_object':
                 Logger.logException('e', '%s does not contain any objects!', file_path)
@@ -75,10 +78,11 @@ class BLENDReader(MeshReader):
                 message = Message(text=i18n_catalog.i18nc('@info', 'Blender plugin needs write permission.\nPlease move your file or give permission.\n\nPath: {}'.format(file_path)),
                                   title=i18n_catalog.i18nc('@info:title', 'Not enough permission for this path'))
                 message.show()
+            # Checks if the file is too complex for aimed file extension.
+            elif temp_path == 'complex_filetype':
+                self._complexFileType()
             # Continues if file is converted correctly.  
             else:
-                self._file_path = file_path
-
                 self._changeWatchedFile(temp_path, file_path)
 
                 if not self._curasplit:
@@ -217,8 +221,8 @@ class BLENDReader(MeshReader):
                 subprocess.run(command, shell = True)
                 node = self._openFile(temp_path)
                 # Checks if user has permission for path of current file.
-                if not node:
-                    temp_path = 'no_permission'
+                if self._check:
+                    temp_path = self._check
                     return temp_path
                 node.getMeshData()._file_name = file_path
                 nodes.append(node)
@@ -242,8 +246,8 @@ class BLENDReader(MeshReader):
                     process.wait()
                     node = self._openFile(temp_path)
                     # Checks if user has permission for path of current file.
-                    if not node:
-                        temp_path = 'no_permission'
+                    if self._check:
+                        temp_path = self._check
                     else:
                         node.getMeshData()._file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], index + 1)
                         nodes.append(node)
@@ -341,11 +345,85 @@ class BLENDReader(MeshReader):
             if os.path.isfile(temp_path):
                 node = reader.read(temp_path)
             else:
-                node = None
+                self._check = 'no_permission'
+        except:
+            self._check = 'complex_filetype'
         finally:
+            # In case procedure runs into errors and doesn't set node.
+            if not 'node' in locals():
+                node = None
+
             if os.path.isfile(temp_path):
                 os.remove(temp_path)
             # Converting to .obj always creates a copy of it as .mtl (A library for used materials).
             if os.path.isfile(temp_path[:-3] + 'mtl'):
                 os.remove(temp_path[:-3] + 'mtl')
         return node
+
+
+    ## Creates message for too complex files.
+    #
+    #   \param file_path  The file_path of the complex object.
+    def _complexFileType(self):
+        Logger.logException('e', '%s is too complex for %s', Blender.file_extension, self._file_path)
+        message = Message(text=i18n_catalog.i18nc('@info', 'This file is either too complex for {}-extension\nor no reader for this file type was found. \
+                          \n\nPlease change the file extension:'.format(Blender.file_extension)),
+                          title=i18n_catalog.i18nc('@info:title', '{} is not supported for this file'.format(Blender.file_extension)))
+        if Blender.file_extension == 'stl':
+            message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
+                              button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('x3d', i18n_catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+        if Blender.file_extension == 'obj':
+            message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
+                              button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('x3d', i18n_catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+        if Blender.file_extension == 'x3d':
+            message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('x3d', i18n_catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
+                              button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+        if Blender.file_extension == 'ply':
+            message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('x3d', i18n_catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
+                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
+                              button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+        else:
+            None
+        message.actionTriggered.connect(self._changeFileType)
+        message.show()
+
+
+    ##  The trigger connected for changing file type if it's too complex.
+    #
+    #   \param message  The opened message to hide with ignore button.
+    #   \param action   The pressed button on the message.
+    def _changeFileType(self, message, action):
+        if action == Blender.file_extension:
+            fail_message = Message(text=i18n_catalog.i18nc('@info', 'Please choose a different file extension.'),
+                                   title=i18n_catalog.i18nc('@info:title', 'Same file extension chosen'))
+            fail_message.show()
+        else:
+            Blender.file_extension = action
+            Blender.Blender.writeJsonFile('file_extension', action)
+            message.hide()
+            success_message = Message(text=i18n_catalog.i18nc('@info', 'File extension correctly changed.\n\nRetry loading the file.'),
+                                      title=i18n_catalog.i18nc('@info:title', 'Change succesfully'))
+            success_message.show()
