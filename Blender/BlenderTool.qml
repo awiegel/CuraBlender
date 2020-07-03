@@ -61,7 +61,7 @@ Item
     {
         id: openInBlenderButton
         anchors.left: parent.left
-        anchors.top: parents.top
+        anchors.top: parent.top
         height: UM.Theme.getSize("setting_control").height;
 
         // The graphical representation of this object inside cura.
