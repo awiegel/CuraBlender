@@ -3,6 +3,7 @@ import os
 import platform
 import json
 import glob
+import time  # Small fix for changes to live_reload during runtime.
 import subprocess
 from subprocess import PIPE
 
@@ -254,11 +255,11 @@ class Blender(Tool):
                             outdated_blender_version = True
                             Logger.logException('e', 'Your version of blender is outdated. Blender version 2.80 or higher is required!')
                             message = Message(text=i18n_catalog.i18nc('@info', 'Please update your blender version.'),
-                                             title=i18n_catalog.i18nc('@info:title', 'Outdated blender version'))
+                                              title=i18n_catalog.i18nc('@info:title', 'Outdated blender version'))
                             message.addAction('Download Blender', i18n_catalog.i18nc('@action:button', 'Download Blender'), '[no_icon]', '[no_description]',
-                                             button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+                                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
                             message.addAction('Set new Blender path', i18n_catalog.i18nc('@action:button', 'Set new Blender path'), '[no_icon]', '[no_description]',
-                                             button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
+                                              button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
                             message.actionTriggered.connect(self._downloadBlenderTrigger)
                             message.show()
                     else:
@@ -292,7 +293,7 @@ class Blender(Tool):
     @classmethod
     def _openFileDialog(self, blender_path, system):
         message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually.'),
-                        title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
+                          title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
         message.show()
 
         dialog = QFileDialog()
@@ -354,7 +355,7 @@ class Blender(Tool):
                     self.openBlender(open_files.pop())
                 else:                    
                     message = Message(text=i18n_catalog.i18nc('@info','Select Object first.'),
-                                    title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
+                                      title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
                     message.show()
             # If one object is selected, opens it's file reference (file name).
             elif len(Selection.getAllSelectedObjects()) == 1:
@@ -376,7 +377,7 @@ class Blender(Tool):
                     self.openBlender(file_path)
                 else:
                     message = Message(text=i18n_catalog.i18nc('@info','Please rethink your selection.'),
-                                    title=i18n_catalog.i18nc('@info:title', 'Select only objects from same file'))
+                                      title=i18n_catalog.i18nc('@info:title', 'Select only objects from same file'))
                     message.show()
 
 
@@ -445,7 +446,7 @@ class Blender(Tool):
         )
         subprocess.run(command, shell = True)
         
-        if os.path.isfile(export_path):
+        if self._live_reload and os.path.isfile(export_path):
             job = ReadMeshJob(export_path)
             job.finished.connect(self._readMeshFinished)
             job.start()
@@ -474,6 +475,7 @@ class Blender(Tool):
             job.start()
         # Refreshes file in file watcher in case the auto reload flag gets changed during runtime.
         else:
+            time.sleep(1)
             fs_watcher.removePath(path)
             fs_watcher.addPath(path)
 
