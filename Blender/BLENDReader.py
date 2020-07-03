@@ -63,8 +63,20 @@ class BLENDReader(MeshReader):
             self._curasplit = False
 
             temp_path = self._convertAndOpenFile(file_path, nodes)
-            # Checks if file is converted correctly.
-            if temp_path:
+            # Checks if file does not contain any objects.
+            if temp_path == 'no_object':
+                Logger.logException('e', '%s does not contain any objects!', file_path)
+                message = Message(text=i18n_catalog.i18nc('@info', '{}\ndoes not contain any objects.'.format(file_path)),
+                                  title=i18n_catalog.i18nc('@info:title', 'No object found'))
+                message.show()
+            # Checks if user has permission for path of current file.
+            elif temp_path == 'no_permission':
+                Logger.logException('e', '%s - write permission needed!', file_path)
+                message = Message(text=i18n_catalog.i18nc('@info', 'Blender plugin needs write permission.\nPlease move your file or give permission.\n\nPath: {}'.format(file_path)),
+                                  title=i18n_catalog.i18nc('@info:title', 'Not enough permission for this path'))
+                message.show()
+            # Continues if file is converted correctly.  
+            else:
                 self._file_path = file_path
 
                 self._changeWatchedFile(temp_path, file_path)
@@ -78,12 +90,6 @@ class BLENDReader(MeshReader):
                                 break
 
                 self._calculateAndSetScale(nodes)
-            # If file does not contain any objects.
-            else:
-                Logger.logException('e', '%s does not contain any objects!', file_path)
-                message = Message(text=i18n_catalog.i18nc('@info', '{}\ndoes not contain any objects.'.format(file_path)),
-                                  title=i18n_catalog.i18nc('@info:title', 'No object found'))
-                message.show()
 
         return nodes
 
@@ -201,15 +207,19 @@ class BLENDReader(MeshReader):
 
             # If file has no objects, return None.
             if objects == 0:
-                return
+                temp_path = 'no_object'
+                return temp_path
             # Routine for files with exactly one object.
             elif objects == 1:
                 temp_path = self._buildTempPath(file_path)
                 import_file = self._importFile(temp_path)
                 command = self.buildCommand('Single node', file_path, import_file)
                 subprocess.run(command, shell = True)
-
                 node = self._openFile(temp_path)
+                # Checks if user has permission for path of current file.
+                if not node:
+                    temp_path = 'no_permission'
+                    return temp_path
                 node.getMeshData()._file_name = file_path
                 nodes.append(node)
             # Routine for files with multiple objects.
@@ -231,8 +241,12 @@ class BLENDReader(MeshReader):
                     # Waits for possibly unfinished conversions.
                     process.wait()
                     node = self._openFile(temp_path)
-                    node.getMeshData()._file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], index + 1)
-                    nodes.append(node)
+                    # Checks if user has permission for path of current file.
+                    if not node:
+                        temp_path = 'no_permission'
+                    else:
+                        node.getMeshData()._file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], index + 1)
+                        nodes.append(node)
         # If file was derived from another .blend file, instead checks the original file by index.
         else:
             self._curasplit = True
@@ -324,7 +338,10 @@ class BLENDReader(MeshReader):
     def _openFile(self, temp_path):
         reader = Application.getInstance().getMeshFileHandler().getReaderForFile(temp_path)
         try:
-            node = reader.read(temp_path)
+            if os.path.isfile(temp_path):
+                node = reader.read(temp_path)
+            else:
+                node = None
         finally:
             if os.path.isfile(temp_path):
                 os.remove(temp_path)
