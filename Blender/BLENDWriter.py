@@ -34,6 +34,9 @@ class BLENDWriter(MeshWriter):
     #   \param mode    The mode we write our file in. Not important here.
     #   \return        Always true, because the actual writing happens internal and not in this job.
     def write(self, stream, nodes, mode = MeshWriter.OutputMode.BinaryMode):
+        # Checks if path to this plugin is set.
+        if not Blender.plugin_path:
+            Blender.Blender.setPluginPath()
         # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
         if not Blender.verified_blender and (not Blender.blender_path or not Blender.Blender.verifyBlenderPath()):
             Blender.Blender.setBlenderPath()
@@ -107,7 +110,7 @@ class BLENDWriter(MeshWriter):
     #   \param execute_list   A list (String) with instructions for all other files.
     #   \return               The complete command needed by subprocess.
     def _buildCommand(self, file_name, blender_files, execute_list):
-        self._script_path = '{}/plugins/Blender/BlenderAPI.py'.format(os.getcwd())
+        self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
         command = (
             Blender.blender_path,
             '--background',

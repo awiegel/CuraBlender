@@ -17,6 +17,7 @@ from PyQt5.QtGui import QDesktopServices
 from UM.Logger import Logger
 from UM.Message import Message
 from UM.Tool import Tool  # The PluginObject we're going to extend.
+from UM.PluginRegistry import PluginRegistry
 from UM.Mesh.ReadMeshJob import ReadMeshJob  # To reload a mesh when its file was changed.
 from UM.Application import Application
 from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
@@ -32,7 +33,7 @@ i18n_catalog = i18nCatalog('uranium')
 
 
 # Global variables used by our other modules.
-global blender_path, file_extension, fs_watcher, outdated_blender_version
+global blender_path, plugin_path, file_extension, fs_watcher, outdated_blender_version
 
 # A flag that indicates an outdated blender version. 
 outdated_blender_version = False
@@ -75,7 +76,8 @@ class Blender(Tool):
     #   \return     The value associated with the given key.
     @classmethod
     def loadJsonFile(self, key):
-        with open('plugins/Blender/blender_settings.json', 'r') as json_file:
+        settings_path = os.path.join(plugin_path, 'blender_settings.json')
+        with open(settings_path, 'r') as json_file:
             data = json.load(json_file)
         return data[key]
     
@@ -88,12 +90,13 @@ class Blender(Tool):
     #   \param value  The value we try to add to the requested key.
     @classmethod
     def writeJsonFile(self, key, value):
-        with open('plugins/Blender/blender_settings.json', 'r') as json_file:
+        settings_path = os.path.join(plugin_path, 'blender_settings.json')
+        with open(settings_path, 'r') as json_file:
             data = json.load(json_file)
 
         # Needs write permissions for the settings file (blender_settings.json).
         try:
-            with open('plugins/Blender/blender_settings.json', 'w+') as outfile:
+            with open(settings_path, 'w+') as outfile:
                 data[key] = value
                 json.dump(data, outfile, indent=4, sort_keys=False)
         except:
@@ -102,6 +105,9 @@ class Blender(Tool):
 
     ## Loads and sets all settings from settings file.
     def loadAndSetSettings(self):
+        # Loads and sets the path to this plugin.
+        self.loadPluginPath()
+
         # Loads and sets the "live reload" option.
         if self.loadJsonFile('live_reload'):
             self._live_reload = True
@@ -130,67 +136,83 @@ class Blender(Tool):
         self.loadBlenderPath()
 
 
-    ## Loads and sets the file extension.
+    ##  Loads and sets the file extension.
     def loadFileExtension(self):
         global file_extension
         file_extension = self.loadJsonFile('file_extension')
 
-    ## Loads and sets the path to blender.
+    ##  Loads and sets the path to blender.
     def loadBlenderPath(self):
         global blender_path
         blender_path = self.loadJsonFile('blender_path')
-    
 
-    ## Gets the state of the "live reload" option.
+    ##  Loads and sets the path to this plugin.
+    def loadPluginPath(self):
+        global plugin_path
+        if len(PluginRegistry.getInstance().getActivePlugins()) == 0:
+            for path_depth in range(10):
+                depth = '/*' * path_depth
+                plugin_path = glob.glob('{}{}/Blender'.format(os.getcwd(), depth))
+                if plugin_path:
+                    plugin_path = plugin_path[0]
+                    break
+        else:
+            # By default 3MFReader, 3MFWriter, AMFReader are loaded before all other plugins. Gets the plugin path.
+            for plugin in PluginRegistry.getInstance().getActivePlugins():
+                plugin_path = os.path.join(os.path.dirname(PluginRegistry.getInstance().getPluginPath(plugin)), 'Blender')
+                break
+ 
+
+    ##  Gets the state of the "live reload" option.
     def getLiveReload(self):
         return self._live_reload
     
-    ## Gets the state of the "auto arrange on reload" option.
+    ##  Gets the state of the "auto arrange on reload" option.
     def getAutoArrangeOnReload(self):
         return self._auto_arrange_on_reload
     
-    ## Gets the state of the "auto scale on read" option.
+    ##  Gets the state of the "auto scale on read" option.
     def getAutoScaleOnRead(self):
         return self._auto_scale_on_read
     
-    ## Gets the state of the "show scale message" option.
+    ##  Gets the state of the "show scale message" option.
     def getShowScaleMessage(self):
         return self._show_scale_message
     
-    ## Gets the current import type.
+    ##  Gets the current import type.
     def getImportType(self):
         return file_extension
 
 
-    ## Sets the state of the "live reload" option.
+    ##  Sets the state of the "live reload" option.
     def setLiveReload(self, value):
         if value != self._live_reload:
             self._live_reload = value
             self.propertyChanged.emit()
             self.writeJsonFile('live_reload', value)
     
-    ## Sets the state of the "auto arrange on reload" option.
+    ##  Sets the state of the "auto arrange on reload" option.
     def setAutoArrangeOnReload(self, value):
         if value != self._auto_arrange_on_reload:
             self._auto_arrange_on_reload = value
             self.propertyChanged.emit()
             self.writeJsonFile('auto_arrange_on_reload', value)
     
-    ## Sets the state of the "auto scale on read" option.
+    ##  Sets the state of the "auto scale on read" option.
     def setAutoScaleOnRead(self, value):
         if value != self._auto_scale_on_read:
             self._auto_scale_on_read = value
             self.propertyChanged.emit()
             self.writeJsonFile('auto_scale_on_read', value)
     
-    ## Sets the state of the "show scale message" option.
+    ##  Sets the state of the "show scale message" option.
     def setShowScaleMessage(self, value):
         if value != self._show_scale_message:
             self._show_scale_message = value
             self.propertyChanged.emit()
             self.writeJsonFile('show_scale_message', value)
     
-    ## Sets the import type to the given value.
+    ##  Sets the import type to the given value.
     def setImportType(self, value):
         global file_extension
         if value != file_extension:
@@ -198,6 +220,12 @@ class Blender(Tool):
             self.propertyChanged.emit()
             self.writeJsonFile('file_extension', value)
 
+
+    @classmethod
+    ## Sets the path to this plugin.
+    def setPluginPath(self):
+        global plugin_path
+        plugin_path = PluginRegistry.getInstance().getPluginPath('Blender')
 
     ##  Tries to set the path to blender automatically, if unsuccessful the user can set it manually.
     @classmethod

@@ -41,6 +41,9 @@ class BLENDReader(MeshReader):
     #   \param file_path  The path of the file we try to open.
     #   \return           A list of all nodes contained in the file.
     def read(self, file_path):
+        # Checks if path to this plugin is set.
+        if not Blender.plugin_path:
+            Blender.Blender.setPluginPath()
         # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
         if not Blender.verified_blender and (not Blender.blender_path or not Blender.Blender.verifyBlenderPath()):
             Blender.Blender.setBlenderPath()
@@ -293,8 +296,7 @@ class BLENDReader(MeshReader):
     #   \return             The complete command needed by subprocess.
     @classmethod
     def buildCommand(self, program, file_path, instruction = None, index = None):
-        if not 'self._script_path' in locals():
-            self._script_path = '{}/plugins/Blender/BlenderAPI.py'.format(os.getcwd())
+        self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
 
         if program == 'Count nodes' or program == 'Single node':
             command = (
