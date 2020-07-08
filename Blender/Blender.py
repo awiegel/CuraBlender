@@ -241,7 +241,7 @@ class Blender(Tool):
             # Supports multi-platform
             if system == 'Windows':
                 temp_blender_path = glob.glob('C:/Program Files/Blender Foundation/**/*.exe')
-                blender_path = ''.join(temp_blender_path).replace('\\', '/')
+                blender_path = temp_blender_path[len(temp_blender_path)-1].replace('\\', '/')
             elif system == 'Darwin':
                 blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
             elif system == 'Linux':
@@ -252,6 +252,8 @@ class Blender(Tool):
             # If unsuccessful the user can set it manually.
             if not os.path.exists(blender_path):
                 blender_path = self._openFileDialog(blender_path, system)
+            else:
+                self.verifyBlenderPath()
 
         # Adds blender path in settings file (needs permission).
         self.writeJsonFile('blender_path', blender_path)
@@ -343,9 +345,7 @@ class Blender(Tool):
         # Opens the file explorer and checks if file is selected.
         if dialog.exec_():
             message.hide()
-            message = Message(text=i18n_catalog.i18nc('@info', 'A new path to blender was set.\nPlease try again.'),
-                              title=i18n_catalog.i18nc('@info:title', 'New Blender path set'))
-            message.show()
+            self.verifyBlenderPath()
             # Adds blender path in settings file (needs permission).
             self.writeJsonFile('blender_path', blender_path)
         else:
