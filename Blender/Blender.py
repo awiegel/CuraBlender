@@ -419,7 +419,7 @@ class Blender(Tool):
             else:
                 None
 
-            export_file = '{}/{}_cura_temp.blend'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0])
+            export_file = '{}/{}_cura_temp.blend'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0]).replace('//', '/')
             execute_list = execute_list + "bpy.ops.wm.save_as_mainfile(filepath = '{}')".format(export_file)
 
             command = '"{}" --background --python-expr "import bpy; import sys; exec(sys.argv[-1])" -- "{}"'.format(blender_path, execute_list)
@@ -428,7 +428,6 @@ class Blender(Tool):
             command = '"{}" "{}"'.format(blender_path, export_file)
             subprocess.Popen(command, shell = True)
             
-
             self._foreign_file_extension = os.path.basename(file_path).rsplit('.', 1)[-1]
             self._foreign_file_watcher.addPath(export_file)
         else:
@@ -445,7 +444,7 @@ class Blender(Tool):
 
         command = '"{}" "{}" --background --python-expr "import bpy; import sys; exec(sys.argv[-1])" -- "{}"'.format(blender_path, path, execute_list)
         subprocess.run(command, shell = True)
-        
+
         if self._live_reload and os.path.isfile(export_path):
             job = ReadMeshJob(export_path)
             job.finished.connect(self._readMeshFinished)
@@ -489,7 +488,7 @@ class Blender(Tool):
     #   \param path  The path to the changed file.
     def _readMeshFinished(self, job):
         job._nodes = []
-        tempFlag = False
+        temp_flag = False
         # Gets all files from all objects on the build plate.
         for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
             if isinstance(node, CuraSceneNode) and node.getMeshData():
@@ -502,10 +501,10 @@ class Blender(Tool):
                 if '_cura_temp' in job.getFileName():
                     temp_path = '{}/{}.{}'.format(os.path.dirname(job.getFileName()),                          \
                                                   os.path.basename(job.getFileName()).rsplit('.', 1)[0][:-10], \
-                                                  os.path.basename(job.getFileName()).rsplit('.', 1)[-1])
+                                                  os.path.basename(job.getFileName()).rsplit('.', 1)[-1]).replace('//', '/')
                     if file_path == temp_path:
                         job._nodes.append(node)
-                        tempFlag = True
+                        temp_flag = True
                 else:
                     if file_path == job.getFileName():
                         job._nodes.append(node)
@@ -524,7 +523,7 @@ class Blender(Tool):
             mesh_data = node.getMeshData()
             job._node.setMeshData(mesh_data)
             # Checks if foreign file is reloaded and sets the correct file name.
-            if tempFlag:
+            if temp_flag:
                 job._node.getMeshData()._file_name = temp_path
 
         # Checks auto arrange flag in settings file.

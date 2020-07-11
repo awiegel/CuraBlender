@@ -6,6 +6,7 @@ from subprocess import PIPE
 
 # Imports from Uranium.
 from UM.Mesh.MeshReader import MeshReader
+from UM.Platform import Platform
 from UM.Logger import Logger
 from UM.Message import Message
 from UM.Application import Application
@@ -18,6 +19,9 @@ from cura.Scene.CuraSceneNode import CuraSceneNode
 
 # Imports from own package.
 from . import Blender
+
+if Platform.isWindows():
+    from PyQt5.QtCore import QEventLoop  # Windows fix for using file watcher on removable devices.
 
 
 # The catalog used for showing messages.
@@ -103,6 +107,9 @@ class BLENDReader(MeshReader):
 
     # After reading exported file change file reference to .blend clone.
     def _changeWatchedFile(self, old_path, new_path):
+        # File watcher causes cura to crash on windows if threaded from removable device (usb, ...). Create QEventLoop earlier to fix this.
+        if Platform.isWindows():
+            QEventLoop()
         Application.getInstance().getController().getScene().removeWatchedFile(old_path)
         Blender.fs_watcher.addPath(new_path)
 
