@@ -88,15 +88,15 @@ class BLENDWriter(MeshWriter):
         # Checks the file extension and builds the command based on it.
         for file_path in file_list:
             if file_path.endswith('.blend'):
-                blender_files = blender_files + file_path + ';'
+                blender_files = '{}{};'.format(blender_files, file_path)
             elif file_path.endswith('.stl'):
-                execute_list = execute_list + 'bpy.ops.import_mesh.stl(filepath = "{}");'.format(file_path)
+                execute_list = execute_list + "bpy.ops.import_mesh.stl(filepath = '{}');".format(file_path)
             elif file_path.endswith('.ply'):
-                execute_list = execute_list + 'bpy.ops.import_mesh.ply(filepath = "{}");'.format(file_path)
+                execute_list = execute_list + "bpy.ops.import_mesh.ply(filepath = '{}');".format(file_path)
             elif file_path.endswith('.obj'):
-                execute_list = execute_list + 'bpy.ops.import_scene.obj(filepath = "{}");'.format(file_path)
+                execute_list = execute_list + "bpy.ops.import_scene.obj(filepath = '{}');".format(file_path)
             elif file_path.endswith('.x3d'):
-                execute_list = execute_list + 'bpy.ops.import_scene.x3d(filepath = "{}");'.format(file_path)
+                execute_list = execute_list + "bpy.ops.import_scene.x3d(filepath = '{}');".format(file_path)
             # Ignore objects with unsupported file extension.
             else:
                 Logger.logException('e', '%s\nhas unsupported file extension and was ignored!', file_path)
@@ -111,13 +111,7 @@ class BLENDWriter(MeshWriter):
     #   \return               The complete command needed by subprocess.
     def _buildCommand(self, file_name, blender_files, execute_list):
         self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
-        command = (
-            Blender.blender_path,
-            '--background',
-            '--python',
-            self._script_path,
-            '--', file_name, execute_list, blender_files, 'Write'
-        )
+        command = '"{}" --background --python "{}" -- "{}" "{}" "{}" "{}"'.format(Blender.blender_path, self._script_path, file_name, execute_list, blender_files, 'Write')
         return command
 
 

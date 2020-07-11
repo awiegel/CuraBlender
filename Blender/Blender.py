@@ -63,7 +63,7 @@ class Blender(Tool):
 
         # Adds filewatcher and it's connection for blender files.
         fs_watcher = QFileSystemWatcher()
-        fs_watcher.fileChanged.connect(self.fileChanged)
+        fs_watcher.fileChanged.connect(self._fileChanged)
 
         # Adds filewatcher and it's connection for foreign files.
         self._foreign_file_watcher = QFileSystemWatcher()
@@ -149,19 +149,13 @@ class Blender(Tool):
     ##  Loads and sets the path to this plugin.
     def loadPluginPath(self):
         global plugin_path
-        if len(PluginRegistry.getInstance().getActivePlugins()) == 0:
-            for path_depth in range(10):
-                depth = '/*' * path_depth
-                plugin_path = glob.glob('{}{}/Blender'.format(os.getcwd(), depth))
-                if plugin_path:
-                    plugin_path = plugin_path[0]
-                    break
-        else:
-            # By default 3MFReader, 3MFWriter, AMFReader are loaded before all other plugins. Gets the plugin path.
-            for plugin in PluginRegistry.getInstance().getActivePlugins():
-                plugin_path = os.path.join(os.path.dirname(PluginRegistry.getInstance().getPluginPath(plugin)), 'Blender')
+        for path_depth in range(10):
+            depth = '/*' * path_depth
+            plugin_path = glob.glob('{}{}/Blender'.format(os.getcwd(), depth))
+            if plugin_path:
+                plugin_path = plugin_path[0]
                 break
- 
+
 
     ##  Gets the state of the "live reload" option.
     def getLiveReload(self):
@@ -245,7 +239,7 @@ class Blender(Tool):
             elif system == 'Darwin':
                 blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
             elif system == 'Linux':
-                blender_path = '/usr/share/blender/2.82/blender'
+                blender_path = '/usr/bin/blender'
             else:
                 blender_path = None
 
@@ -267,13 +261,7 @@ class Blender(Tool):
         try:
             # Checks if blender path variable is set and the path really exists.
             if blender_path and os.path.exists(blender_path):
-                command = (
-                    blender_path,
-                    '--background',
-                    '--python-expr',
-                    'import bpy;'
-                    'print(bpy.app.version >= (2, 80, 0))'
-                )
+                command = '"{}" --background --python-expr "import bpy; print(bpy.app.version >= (2, 80, 0))"'.format(blender_path)
                 # Calls blender in the background and jumps to the exception if it's not blender and therefor returns false.
                 # Also checks if the version of blender is compatible.
                 version = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
@@ -336,7 +324,7 @@ class Blender(Tool):
             dialog.setDirectory('/Applications')
             dialog.setNameFilters(["Blender (*.app)"])
         elif system == 'Linux':
-            dialog.setDirectory('/usr/share')
+            dialog.setDirectory('/usr/bin')
         else:
             dialog.setDirectory('')
 
@@ -421,32 +409,26 @@ class Blender(Tool):
         if current_file_extension == 'blend':
             if '_curasplit_' in file_path:
                 file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-            subprocess.Popen((blender_path, file_path), shell = True)
+            command = '"{}" "{}"'.format(blender_path, file_path)
+            subprocess.Popen(command, shell = True)
         # Procedure for non-blender files.
         elif current_file_extension in self._supported_foreign_extensions:
-            execute_list = 'bpy.data.objects.remove(bpy.data.objects["Cube"]);'
+            execute_list = "bpy.data.objects.remove(bpy.data.objects['Cube']);"
             if current_file_extension == 'stl' or current_file_extension == 'ply':
-                execute_list = execute_list + 'bpy.ops.import_mesh.{}(filepath = "{}");'.format(current_file_extension, file_path)
+                execute_list = execute_list + "bpy.ops.import_mesh.{}(filepath = '{}');".format(current_file_extension, file_path)
             elif current_file_extension == 'obj' or current_file_extension == 'x3d':
-                execute_list = execute_list + 'bpy.ops.import_scene.{}(filepath = "{}");'.format(current_file_extension, file_path)
+                execute_list = execute_list + "bpy.ops.import_scene.{}(filepath = '{}');".format(current_file_extension, file_path)
             else:
                 None
 
             export_file = '{}/{}_cura_temp.blend'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0])
-            execute_list = execute_list + 'bpy.ops.wm.save_as_mainfile(filepath = "{}")'.format(export_file)
+            execute_list = execute_list + "bpy.ops.wm.save_as_mainfile(filepath = '{}')".format(export_file)
 
-            command = (
-                blender_path,
-                '--background',
-                '--python-expr',
-                'import bpy;'
-                'import sys;'
-                'exec(sys.argv[-1])',
-                '--', execute_list
-            )
+            command = '"{}" --background --python-expr "import bpy; import sys; exec(sys.argv[-1])" -- "{}"'.format(blender_path, execute_list)
             subprocess.run(command, shell = True)
 
-            subprocess.Popen((blender_path, export_file), shell = True)
+            command = '"{}" "{}"'.format(blender_path, export_file)
+            subprocess.Popen(command, shell = True)
             
 
             self._foreign_file_extension = os.path.basename(file_path).rsplit('.', 1)[-1]
@@ -461,17 +443,9 @@ class Blender(Tool):
     #   \param path  The path to the changed foreign file.
     def _foreignFileChanged(self, path):
         export_path = '{}.{}'.format(path[:-6], self._foreign_file_extension)
-        execute_list = 'bpy.ops.export_mesh.{}(filepath = "{}", check_existing = False)'.format(self._foreign_file_extension, export_path)
-        command = (
-            blender_path,
-            path,
-            '--background',
-            '--python-expr',
-            'import bpy;'
-            'import sys;'
-            'exec(sys.argv[-1])',
-            '--', execute_list
-        )
+        execute_list = "bpy.ops.export_mesh.{}(filepath = '{}', check_existing = False)".format(self._foreign_file_extension, export_path)
+
+        command = '"{}" "{}" --background --python-expr "import bpy; import sys; exec(sys.argv[-1])" -- "{}"'.format(blender_path, path, execute_list)
         subprocess.run(command, shell = True)
         
         if self._live_reload and os.path.isfile(export_path):
@@ -495,7 +469,7 @@ class Blender(Tool):
     ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.
     #
     #   \param path  The path to the changed blender file.
-    def fileChanged(self, path):
+    def _fileChanged(self, path):
         # Checks auto reload flag in settings file.
         if self._live_reload:
             job = ReadMeshJob(path)

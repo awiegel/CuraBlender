@@ -192,7 +192,8 @@ class BLENDReader(MeshReader):
     #   \param action   The pressed button on the message.
     def _openBlenderTrigger(self, message, action):
         if action == 'Open in Blender':
-            subprocess.Popen((Blender.blender_path, self._file_path), shell = True)
+            command = '"{}" "{}"'.format(Blender.blender_path, self._file_path)
+            subprocess.Popen(command, shell = True)
         message.hide()
 
 
@@ -299,25 +300,13 @@ class BLENDReader(MeshReader):
         self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
 
         if program == 'Count nodes' or program == 'Single node':
-            command = (
-                Blender.blender_path,
-                file_path,
-                '--background',
-                '--python',
-                self._script_path,
-                '--', program
-            )
             if instruction:
                 # Our BlenderAPI uses sys.argv and the order of all arguments given to it needs to be fixed.
-                command = command[:-1] + (instruction,) + command[-1:]
+                command = '"{}" "{}" --background --python "{}" -- "{}" "{}"'.format(Blender.blender_path, file_path, self._script_path, instruction, program)
+            else:
+                command = '"{}" "{}" --background --python "{}" -- "{}"'.format(Blender.blender_path, file_path, self._script_path, program)
         else:
-            command = (
-                Blender.blender_path,
-                '--background',
-                '--python',
-                self._script_path,
-                '--', instruction, index, file_path, program
-            )
+            command = '"{}" --background --python "{}" -- "{}" "{}" "{}" "{}"'.format(Blender.blender_path, self._script_path, instruction, index, file_path, program)
 
         return command
 
@@ -328,9 +317,9 @@ class BLENDReader(MeshReader):
     #   \return            String with the instruction for converting the file.
     def _importFile(self, file_path):
         if Blender.file_extension == 'stl' or Blender.file_extension == 'ply':
-            import_file = 'bpy.ops.export_mesh.{}(filepath = "{}", check_existing = False)'.format(Blender.file_extension, file_path)
+            import_file = "bpy.ops.export_mesh.{}(filepath = '{}', check_existing = False)".format(Blender.file_extension, file_path)
         elif Blender.file_extension == 'obj' or Blender.file_extension == 'x3d':
-            import_file = 'bpy.ops.export_scene.{}(filepath = "{}", check_existing = False)'.format(Blender.file_extension, file_path)
+            import_file = "bpy.ops.export_scene.{}(filepath = '{}', check_existing = False)".format(Blender.file_extension, file_path)
         else:
             # Unreachable statement, because allowed file extension got already verified.
             None
