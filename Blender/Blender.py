@@ -1,6 +1,5 @@
 # Imports from the python standard library.
 import os
-import platform
 import json
 import glob
 import time  # Small fix for changes to live_reload during runtime.
@@ -14,6 +13,7 @@ from PyQt5.QtGui import QDesktopServices
 
 
 # Imports from Uranium.
+from UM.Platform import Platform
 from UM.Logger import Logger
 from UM.Message import Message
 from UM.Tool import Tool  # The PluginObject we're going to extend.
@@ -231,21 +231,20 @@ class Blender(Tool):
         
         # Stops here because blender path from settings file is correct.
         if (not self.verifyBlenderPath() and not outdated_blender_version) or outdated:
-            system = platform.system()
             # Supports multi-platform
-            if system == 'Windows':
+            if Platform.isWindows():
                 temp_blender_path = glob.glob('C:/Program Files/Blender Foundation/**/*.exe')
                 blender_path = temp_blender_path[len(temp_blender_path)-1].replace('\\', '/')
-            elif system == 'Darwin':
+            elif Platform.isOSX():
                 blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
-            elif system == 'Linux':
+            elif Platform.isLinux():
                 blender_path = '/usr/bin/blender'
             else:
                 blender_path = None
 
             # If unsuccessful the user can set it manually.
             if not os.path.exists(blender_path):
-                blender_path = self._openFileDialog(blender_path, system)
+                blender_path = self._openFileDialog(blender_path)
             else:
                 self.verifyBlenderPath()
 
@@ -306,10 +305,9 @@ class Blender(Tool):
     ##  The user can set the path to blender manually. Gets called when blender isn't found in the expected place.
     #
     #   \param blender_path  The global path to blender to set it. Here it's either wrong or doesn't exist.
-    #   \param system        The operating system from which the user operates.
     #   \return              The correctly set path to blender.
     @classmethod
-    def _openFileDialog(self, blender_path, system):
+    def _openFileDialog(self, blender_path):
         message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually.'),
                           title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
         message.show()
@@ -317,13 +315,13 @@ class Blender(Tool):
         dialog = QFileDialog()
         dialog.setAcceptMode(QFileDialog.AcceptOpen)
         # Supports multi-platform
-        if system == 'Windows':
+        if Platform.isWindows():
             dialog.setDirectory('C:/Program Files')
             dialog.setNameFilters(["Blender (*.exe)"])
-        elif system == 'Darwin':
+        elif Platform.isOSX():
             dialog.setDirectory('/Applications')
             dialog.setNameFilters(["Blender (*.app)"])
-        elif system == 'Linux':
+        elif Platform.isLinux():
             dialog.setDirectory('/usr/bin')
         else:
             dialog.setDirectory('')
