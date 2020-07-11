@@ -10,6 +10,7 @@ It also offers extra features that are described in this document.
 - [1. Explanation of all files](#1-Explanation-of-all-files)
 - [2. Potential problems](#2-Potential-problems)
 - [3. Design decisions](#3-Design-decisions)
+- [4. Platform Support](#4-Platform-Support)
 
 <br/>
 
@@ -78,51 +79,37 @@ A license file.
 <div class="page"/>
 
 ## 2. Potential problems
-**Platform Support** \
-This plugin is guaranteed to work on **Windows**. It was developed and extensively tested there. \
-For other platforms like **MacOS** and **Linux** this plugin will probably need some adaptations.
-
-<br/>
-
-**Potential conflicts (platform dependent):** \
-**Used programs** \
-This plugin is running on **Ultimaker Cura** and closely works together with **blender** and it's API. Both programs could work differently on different platforms.
-Even the folder structure inside cura is different, which would lead into problems with loading and writing the settings file. \
-Windows: `plugins/Blender`, MacOS: `plugins/plugins/Blender`. \
-MacOS and Linux port is planed in the future.
-
-**Python** \
-Although python is mostly platform independent, some functions work differently on different platforms. \
-Could be the case for: 'opening file explorer', 'loading and saving to the settings file', 'running a subprocess', 'reading the pipe-output of a subprocess', 'executing strings', 'file watcher', 'removing files', ...
-
-<br/>
-
-**Potential conflicts (general):** \
 **Ultimaker Cura Version** \
 This plugin was developed and tested on **Ultimaker Cura 4.6**. It should also work for other versions of cura, but is not guaranteed.
+
+<br/>
 
 **Blender Version** \
 Because this plugin closely works with Blender and it's python API, there could occur problems with new Blender updates. Nearly every update of blender changes commands of it's python API and could potentially need some tweaks. \
 This is especially true between blender 2.7x and blender 2.8x where the concept of collections was introduced. \
-Therefor this plugin doesn't work for blender version 2.79 and below. \
+Therefore this plugin doesn't work for blender version 2.79 and below. \
 Successfully tested on **blender 2.80, blender 2.81, blender 2.82, blender 2.83**.
+
+<br/>
 
 **Default plugins inside Cura** \
 This plugin reads files by converting them into another file type. This plugin supports (stl, obj, x3d, ply). The readers for those files are implemented in cura by default. However some readers are implemented as plugins. All are installed in cura by default, but could potentially be missing.
 
-<div class="page"/>
+<br/>
 
 **File conversion** \
 BLEND files are not manually processed, but converted into other file types `see: Design decisions`. \
 A temporary file gets created in the same directory as the original file. This could lead to several problems. \
 The path could be protected or the user doesn't have any write permission. Also if the original file gets deleted during a process, this could lead to further problems.
 
+<br/>
+
 **File explorer** \
 If it's the first use time and and the plugin cannot find the blender path automatically, a file explorer window will open up. \
 However opening a file by the folder icon on the top right corner or by pressing `Open file(s)` will open another file explorer as if dragging a BLEND file into the cura window. \
 If the user drags a BLEND file into the cura window and cancels this process, cura might crash.
 
-<br/>
+<div class="page"/>
 
 ## 3. Design decisions
 In this section several design decisions will be further explained.
@@ -141,8 +128,10 @@ The main python modules of this plugin are split by category. This was done inte
 **File conversion vs. manual processing:** \
 Reading/Writing a BLEND file is not done by manually processing the mesh data, but by converting it to a prechosen file type. \
 Processing the mesh data manually wouldn't make much sense, because it is very error-prone. \
-Therefor this plugin uses blender to convert BLEND files to the desired file type and vice versa. \
-Every process is an instance of blender inside a `silent` shell. This shell does everything in background without the user noticing it.
+Therefore this plugin uses blender to convert BLEND files to the desired file type and vice versa. \
+Every process is an instance of blender inside a `silent` shell. This shell does everything in background without the user noticing it. \
+The temporary file is created in the same directory as the original file. This is done for simplicity reasons. \
+Another option would be to save those temporary files in any other directory like %appdata%.
 
 <br/>
 
@@ -172,11 +161,6 @@ This plugin saves all settings into a settings file. The checkboxes are directly
 
 <br/>
 
-**File conversion:** \
-The temporary file is created in the same directory as the original file. This is done for simplicity reasons. Another option would be to save those temporary files in any other directory like %appdata%.
-
-<br/>
-
 **Foreign files in blender:** \
 If a foreign file (stl, obj, x3d, ply) gets opened in blender through the tools button, a BLEND file for it is being created. This file stays and is not being removed by the plugin, because a file watcher is added to this file and if the file gets removed, the file watcher will not work anymore.
 
@@ -190,3 +174,12 @@ This plugin creates some exception logs. These exceptions do not exceed the fram
 **Time measurement:** \
 All methods were tested and optimized with pythons time module. Of course the loading times could be increased for the cost of security and validating. \
 To measure the time of a specific section simply use `start = time.time()` before the specific section and write `time.time() - start` in the log file after the specific section.
+
+<br/> <br/> <br/>
+
+## 4. Platform Support
+This plugin works on every platform (**Windows**, **MacOS**, **Linux**) with full functionality. \
+To achieve this, a lot of platform specific fixes were made. \
+**Some examples:**
+* Subprocess uses a list of arguments or a tuple of arguments as one big argument on windows, while on macOS and linux only the first argument gets executed. Therefore all commands are one big string.
+* File watcher on windows crashes when a file from a removable device (usb, ...) gets opened. To fix this, a QEventLoop gets created before adding a path to the file watcher. Later this QEventLoop would be created anyways.

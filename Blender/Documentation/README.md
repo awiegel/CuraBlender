@@ -13,9 +13,8 @@
 ## 1. Installation
 To install this plugin, simply drag this folder unzipped into your plugins folder.
 
-The following tools are needed for this plugin to work:
-* Blender (https://www.blender.org/download/)
-* Python  (https://www.python.org/downloads/)
+The following tool is needed for this plugin to work:
+* **Blender** (https://www.blender.org/download/) (**2.80 or higher** is required)
 
 <br/>
 
