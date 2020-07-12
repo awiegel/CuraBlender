@@ -128,7 +128,7 @@ def main():
                 objects = loadLibrary(file_path)
                 
                 for node in objects:
-                    node.name = '{}_{}_NEW'.format(os.path.basename(file_path).strip('.blend'), os.path.basename(file_path).rsplit('.', 1)[-1])
+                    node.name = '{}_{}_NEW'.format(os.path.basename(file_path).replace('.blend',''), os.path.basename(file_path).rsplit('.', 1)[-1])
                     bpy.context.collection.objects.link(node)
 
         execute_list = sys.argv[-3]
