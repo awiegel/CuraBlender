@@ -1,6 +1,7 @@
 <div style="text-align: right"> <strong> Authors: </strong> Alexander Wiegel & Yusuf Ay </div>
 
-# Blender Manual <img align="right" width="10%" height="10%" src="images/blender_logo.png" />
+# Blender Manual <img align="right" width="10%" height="10%" src="Documentation/images/blender_logo.png" />
+This is a plugin for ultimaker cura which integrates blender for a much better workflow.
 
 <br/>
 
@@ -35,7 +36,9 @@ Any combination of those objects/files will work.
 <div class="page"/>
 
 **Functionality accessed through the toolbar:** \
-<img align="right" width="60%" height="60%" src="images/blender_interface.PNG" /> <img align="right" width="10%" height="10%" src="images/blender_logo.svg" />
+<img align="right" width="60%" height="60%" src="Documentation/images/blender_interface.PNG" />
+<img align="right" width="10%" height="10%" src="Documentation/images/blender_logo.svg" />
+
 To use the tool of this plugin, load an object from a file and click on it. A toolbar on the left side of the window will appear.
 Click on the logo of this plugin. \
 There are multiple options available:
@@ -55,7 +58,7 @@ Inside the plugins folder `plugins/Blender` the user can find a settings file `b
 Changing settings inside the toolbar will permanently save those settings inside the settings file.
 The next time the user starts cura, those settings will be loaded.
 
-<img align="right" width="40%" height="40%" src="images/blender_settings.PNG" />
+<img align="right" width="40%" height="40%" src="Documentation/images/blender_settings.PNG" />
 
 **Information:** If the path where Ultimaker Cura is installed is protected, the user either needs to give this settings file write permission or needs to start cura with administrator privileges. Another option is to modify the settings file manually. \
 **Quick tip:** Execute cura as administrator on the first time using this plugin and set the desired settings.
@@ -64,11 +67,11 @@ The next time the user starts cura, those settings will be loaded.
 
 **Example Workflow:** \
 The picture below shows an example of how the workflow with this plugin could look like. \
-<img align="center" width="100%" height="100%" src="images/heroshot.png" title="Example workflow" />
+<img align="center" width="100%" height="100%" src="Documentation/images/heroshot.png" title="Example workflow" />
 
 <br/> <br/> <br/>
 
 **Open/Save BLEND files:** \
 The pictures below show how to open/save BLEND files. \
-<img align="left" width="50%" height="50%" src="images/open_file.PNG" title="Open file" />
-<img align="left" width="50%" height="50%" src="images/save_file.PNG" title="Save file" />
+<img align="left" width="50%" height="50%" src="Documentation/images/open_file.PNG" title="Open file" />
+<img align="left" width="50%" height="50%" src="Documentation/images/save_file.PNG" title="Save file" />
