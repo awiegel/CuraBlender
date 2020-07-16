@@ -46,11 +46,13 @@ class BLENDWriter(MeshWriter):
 
         # Only continues if correct path to blender is set.
         if Blender.verified_blender:
+            self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
+
             file_list = self._createFileList(nodes)
             
             (blender_files, execute_list) = self._createExecuteList(file_list)
 
-            command = self._buildCommand(stream.name, blender_files, execute_list)
+            command = self._buildCommand('Write', stream.name, blender_files, execute_list, temp_path = None)
 
             subprocess.Popen(command, shell = True)
 
@@ -83,12 +85,14 @@ class BLENDWriter(MeshWriter):
     #   \return           A list (String) with all files with the .blend extension.
     #   \return           A list (String) with all files with different file extensions.
     def _createExecuteList(self, file_list):
-        blender_files = ''
+        blender_files = set()
         execute_list = ''
         # Checks the file extension and builds the command based on it.
         for file_path in file_list:
             if file_path.endswith('.blend'):
-                blender_files = '{}{};'.format(blender_files, file_path)
+                if '_curasplit_' in file_path:
+                    file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+                blender_files.add(file_path)
             elif file_path.endswith('.stl'):
                 execute_list = execute_list + "bpy.ops.import_mesh.stl(filepath = '{}');".format(file_path)
             elif file_path.endswith('.ply'):
@@ -100,18 +104,35 @@ class BLENDWriter(MeshWriter):
             # Ignore objects with unsupported file extension.
             else:
                 Logger.logException('e', '%s\nhas unsupported file extension and was ignored!', file_path)
-        return (blender_files, execute_list)
+
+        blend_list = ''
+        processes = []
+        for file_path in blender_files:
+            temp_path = '{}_curatemp_.blend'.format(file_path[:-6])
+            command = self._buildCommand('Write prepare', file_path, temp_path = temp_path)
+            process = subprocess.Popen(command, shell = True)
+            processes.append(process)
+            blend_list = '{}{}_curatemp_.blend;'.format(blend_list, file_path[:-6])
+
+        for process in processes:
+            process.wait()
+
+        return (blend_list, execute_list)
 
 
     ##  Builds the command used by subprocess. Calls the 'Write' program.
     #
+    #   \param program        Mode used by the BlenderAPI to determine which program to run (set of instructions).
     #   \param file_name      The file name we selected when saving the file.
     #   \param blender_files  A list (String) with all blender files.
     #   \param execute_list   A list (String) with instructions for all other files.
+    #   \param temp_path      A temporary path for converting the blend file and preparing the 'Write' step.
     #   \return               The complete command needed by subprocess.
-    def _buildCommand(self, file_name, blender_files, execute_list):
-        self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
-        command = '"{}" --background --python "{}" -- "{}" "{}" "{}" "{}"'.format(Blender.blender_path, self._script_path, file_name, execute_list, blender_files, 'Write')
+    def _buildCommand(self, program, file_name, blender_files = None, execute_list = None, temp_path = None):
+        if program == 'Write prepare':
+            command = '"{}" "{}" --background --python "{}" -- "{}" "{}"'.format(Blender.blender_path, file_name, self._script_path, temp_path, program)
+        else:
+            command = '"{}" --background --python "{}" -- "{}" "{}" "{}" "{}"'.format(Blender.blender_path, self._script_path, file_name, execute_list, blender_files, program)
         return command
 
 

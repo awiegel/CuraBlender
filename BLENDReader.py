@@ -306,14 +306,14 @@ class BLENDReader(MeshReader):
     def buildCommand(self, program, file_path, instruction = None, index = None):
         self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
 
-        if program == 'Count nodes' or program == 'Single node':
-            if instruction:
-                # Our BlenderAPI uses sys.argv and the order of all arguments given to it needs to be fixed.
-                command = '"{}" "{}" --background --python "{}" -- "{}" "{}"'.format(Blender.blender_path, file_path, self._script_path, instruction, program)
+        # Our BlenderAPI uses sys.argv and the order of all arguments given to it needs to be fixed.
+        if instruction:
+            if index:
+                command = '"{}" "{}" --background --python "{}" -- "{}" "{}" "{}"'.format(Blender.blender_path, file_path, self._script_path, instruction, index, program)
             else:
-                command = '"{}" "{}" --background --python "{}" -- "{}"'.format(Blender.blender_path, file_path, self._script_path, program)
+                command = '"{}" "{}" --background --python "{}" -- "{}" "{}"'.format(Blender.blender_path, file_path, self._script_path, instruction, program)
         else:
-            command = '"{}" --background --python "{}" -- "{}" "{}" "{}" "{}"'.format(Blender.blender_path, self._script_path, instruction, index, file_path, program)
+            command = '"{}" "{}" --background --python "{}" -- "{}"'.format(Blender.blender_path, file_path, self._script_path, program)
 
         return command
 

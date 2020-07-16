@@ -23,39 +23,63 @@ def removeScene():
 def loadLibrary(file_path):
     with bpy.data.libraries.load(file_path) as (src, dst):
         dst.objects = src.objects
-    removeDecorators(dst.objects, 'library')
     return dst.objects
     
 
 ##  Removes all decorators (Camera, Light, ...).
 #
 #   \param objects  A list of objects.
-#   \param library  Flag that indicates a library. For compatibility reasons.
-def removeDecorators(objects, library = None):
+def removeDecorators(objects):
     node = 0
     nodes = len(objects)
     while node < nodes:
         if objects[node].type != "MESH":
-            if library:
-                objects.remove(objects[node])
-            else:
-                objects.unlink(objects[node])
+            objects.remove(objects[node])
             node -= 1
             nodes -= 1
         node += 1
 
 
-##  Finds the object with the given index and links it to the scene.
+##  Removes all inactive objects (hide or exclude from viewport).
+#
+#   \param objects  A list of objects.
+def removeInactiveObjects(objects):
+    for collection in range(len(bpy.data.collections)):
+        node = 0
+        nodes = len(bpy.data.collections[collection].objects)
+        while node < nodes:
+            data = bpy.data.collections[collection].objects[node]
+            if not data.visible_get():
+                objects.remove(data)
+                node -= 1
+                nodes -= 1
+            node += 1
+
+
+##  Renames and links all objects to the scene.
+#
+#   \param objects    A list of objects.
+#   \param file_path  The file path for renaming purpose. Used in 'Write' mode.
+def linkAndRenameObjects(objects, file_path):
+    for node in range(len(objects)):
+        objects[node].name = '{}_{}_NEW'.format(os.path.basename(file_path).rsplit('.', 1)[0], os.path.basename(file_path).rsplit('.', 1)[-1])
+        bpy.context.collection.objects.link(objects[node])
+
+
+##  Finds the object with the given index and removes all other objects from the scene.
 #
 #   \param objects    A list of objects.
 #   \param index      The index of the object. Used for files with multiple objects.
-#   \param file_path  The file path for renaming purpose. Used in 'Write' mode.
-def findIndexAndLink(objects, index, file_path = None):
-    for node in range(len(objects)):
-        if node == index:
-            if file_path:
-                objects[node].name = '{}_{}_NEW'.format(os.path.basename(file_path).rsplit('.', 1)[0], os.path.basename(file_path).rsplit('.', 1)[-1])
-            bpy.context.collection.objects.link(objects[node])
+def findIndexAndRemoveOtherObjects(objects, index):
+    nodes = len(objects)
+    node=0
+    while node < nodes:
+        if node != index:
+            objects.remove(objects[node])
+            node -= 1
+            nodes-= 1
+            index -= 1
+        node += 1
 
 
 ##  Repositions all objects in the blender file along the x-axis. Used in 'Write' mode.
@@ -87,6 +111,7 @@ def main():
 
     # Program for counting nodes inside a file.
     if program == 'Count nodes':
+        removeInactiveObjects(bpy.data.objects)
         nodes = 0
         for node in range(len(bpy.data.objects)):
             if bpy.data.objects[node].type == "MESH":
@@ -94,42 +119,37 @@ def main():
         print(nodes)
     # Program for loading files with a single node.
     elif program == 'Single node':
-        removeDecorators(bpy.context.collection.objects)
+        removeDecorators(bpy.data.objects)
+        removeInactiveObjects(bpy.data.objects)
         exec(sys.argv[-2])
     # Program for loading files with multiple nodes.
     elif program == 'Multiple nodes':
-        file_path = sys.argv[-2]
-        index = int(sys.argv[-3])
+        index = int(sys.argv[-2])
 
-        removeScene()
-        
-        objects = loadLibrary(file_path)
-        
-        findIndexAndLink(objects, index)
+        removeDecorators(bpy.data.objects)
+        removeInactiveObjects(bpy.data.objects)
 
-        exec(sys.argv[-4])
+        findIndexAndRemoveOtherObjects(bpy.data.objects, index)
+
+        exec(sys.argv[-3])
+    # Program for preparing the 'Write' step.
+    elif program == 'Write prepare':
+        removeDecorators(bpy.data.objects)
+        removeInactiveObjects(bpy.data.objects)
+        bpy.ops.wm.save_as_mainfile(filepath = '{}'.format(sys.argv[-2]))
+
     # Program for creating a file.
     elif program == 'Write':
         blender_files = sys.argv[-2]
         blender_files = blender_files.split(';')
         
         removeScene()
+
         # Process blender files.
         for file_path in list(filter(None, blender_files)):
-            if '_curasplit_' in file_path:
-                index = int(file_path[file_path.index('_curasplit_') + 11:][:-6]) - 1
-                original_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-
-                objects = loadLibrary(original_path)
-
-                findIndexAndLink(objects, index, file_path)
-
-            else:
-                objects = loadLibrary(file_path)
-                
-                for node in objects:
-                    node.name = '{}_{}_NEW'.format(os.path.basename(file_path).replace('.blend',''), os.path.basename(file_path).rsplit('.', 1)[-1])
-                    bpy.context.collection.objects.link(node)
+            objects = loadLibrary(file_path)
+            linkAndRenameObjects(objects, file_path)
+            os.remove(file_path)
 
         execute_list = sys.argv[-3]
         execute_list = execute_list.split(';')
