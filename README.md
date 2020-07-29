@@ -1,5 +1,3 @@
-<div style="text-align: right"> <strong> Authors: </strong> Alexander Wiegel & Yusuf Ay </div>
-
 # Blender Manual <img align="right" width="10%" height="10%" src="Documentation/images/blender_logo.png" />
 This is a plugin for ultimaker cura which integrates blender for a much better workflow.
 

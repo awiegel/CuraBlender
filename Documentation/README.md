@@ -1,5 +1,3 @@
-<div style="text-align: right"> <strong> Authors: </strong> Alexander Wiegel & Yusuf Ay </div>
-
 # Blender Documentation <img align="right" width="10%" height="10%" src="images/blender_logo.png" />
 This Plugin provides support for reading/writing BLEND files directly without importing/exporting. \
 It also offers extra features that are described in this document.
@@ -11,6 +9,7 @@ It also offers extra features that are described in this document.
 - [2. Potential problems](#2-Potential-problems)
 - [3. Design decisions](#3-Design-decisions)
 - [4. Platform Support](#4-Platform-Support)
+- [5. ToDo](#5-ToDo)
 
 <br/>
 
@@ -114,7 +113,6 @@ If the user drags a BLEND file into the cura window and cancels this process, cu
 ## 3. Design decisions
 In this section several design decisions will be further explained.
 
-<br/>
 
 **Structure:** \
 The main python modules of this plugin are split by category. This was done intentionally to enhance the readability. \
@@ -149,15 +147,15 @@ This is the case because cura doesn't reload a file, but the node related to the
 
 <br/>
 
+**Settings file:** \
+This plugin saves all settings into a settings file. The checkboxes are directly connected with the settings file in real time. Those settings will be loaded on next start of cura.
+
+<div class="page"/>
+
 **Verifying blender path and version:** \
 The path to blender gets verified everytime something is processed by this plugin. \
 Also the version of blender is being checked for compatibility (blender version 2.80 or higher is required). \
 Although this consumes some time, it is done to prevent a wrongly set path by the user or automatically by this plugin.
-
-<br/>
-
-**Settings file:** \
-This plugin saves all settings into a settings file. The checkboxes are directly connected with the settings file in real time. Those settings will be loaded on next start of cura.
 
 <br/>
 
@@ -175,7 +173,7 @@ This plugin creates some exception logs. These exceptions do not exceed the fram
 All methods were tested and optimized with pythons time module. Of course the loading times could be increased for the cost of security and validating. \
 To measure the time of a specific section simply use `start = time.time()` before the specific section and write `time.time() - start` in the log file after the specific section.
 
-<br/> <br/> <br/>
+<br/> <br/>
 
 ## 4. Platform Support
 This plugin works on every platform (**Windows**, **MacOS**, **Linux**) with full functionality. \
@@ -183,3 +181,10 @@ To achieve this, a lot of platform specific fixes were made. \
 **Some examples:**
 * Subprocess uses a list of arguments or a tuple of arguments as one big argument on windows, while on macOS and linux only the first argument gets executed. Therefore all commands are one big string.
 * File watcher on windows crashes when a file from a removable device (usb, ...) gets opened. To fix this, a QEventLoop gets created before adding a path to the file watcher. Later this QEventLoop would be created anyways.
+
+<br/> <br/>
+
+## 5. ToDo
+Adding/Removing objects inside a loaded BLEND file, doesn't add/remove the corresponding object in cura. \
+This plugin links objects from blender to cura by index. Adding/Removing an object would mess this up. \
+One idea is to hand over the object names from blender and add this to the file reference (file name).
