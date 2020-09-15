@@ -1,5 +1,5 @@
 {
-    "name": "Blender",
+    "name": "CuraBlender",
     "author": "Alexander Wiegel",
     "version": "1.0.0",
     "description": "Provides support for reading/writing BLEND files.",

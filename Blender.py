@@ -151,7 +151,7 @@ class Blender(Tool):
         global plugin_path
         for path_depth in range(10):
             depth = '/*' * path_depth
-            plugin_path = glob.glob('{}{}/Blender'.format(os.getcwd(), depth))
+            plugin_path = glob.glob('{}{}/CuraBlender'.format(os.getcwd(), depth))
             if plugin_path:
                 plugin_path = plugin_path[0]
                 break
@@ -219,7 +219,7 @@ class Blender(Tool):
     ## Sets the path to this plugin.
     def setPluginPath(self):
         global plugin_path
-        plugin_path = PluginRegistry.getInstance().getPluginPath('Blender')
+        plugin_path = PluginRegistry.getInstance().getPluginPath('CuraBlender')
 
     ##  Tries to set the path to blender automatically, if unsuccessful the user can set it manually.
     @classmethod
