@@ -45,8 +45,8 @@ class BLENDReader(MeshReader):
     #   \param file_path  The path of the file we try to open.
     #   \return           A list of all nodes contained in the file.
     def read(self, file_path):
-        # Checks if path to this plugin is set.
-        if not Blender.plugin_path:
+        # Checks if path to this plugin is correct.
+        if not Blender.Blender.verifyPluginPath():
             Blender.Blender.setPluginPath()
         # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
         if not Blender.verified_blender and (not Blender.blender_path or not Blender.Blender.verifyBlenderPath()):

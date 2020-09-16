@@ -77,9 +77,13 @@ class Blender(Tool):
     @classmethod
     def loadJsonFile(self, key):
         settings_path = os.path.join(plugin_path, 'blender_settings.json')
-        with open(settings_path, 'r') as json_file:
-            data = json.load(json_file)
-        return data[key]
+        try:
+            with open(settings_path, 'r') as json_file:
+                data = json.load(json_file)
+                value = data[key]
+        except:
+            value = True
+        return value
     
 
     ##  Loads the settings file (blender_settings.json) and tries to store the value to the given key.
@@ -90,12 +94,16 @@ class Blender(Tool):
     #   \param value  The value we try to add to the requested key.
     @classmethod
     def writeJsonFile(self, key, value):
-        settings_path = os.path.join(plugin_path, 'blender_settings.json')
-        with open(settings_path, 'r') as json_file:
-            data = json.load(json_file)
+        # Checks if path to this plugin is correct.
+        if not self.verifyPluginPath():
+            self.setPluginPath()
 
-        # Needs write permissions for the settings file (blender_settings.json).
+        settings_path = os.path.join(plugin_path, 'blender_settings.json')
         try:
+            with open(settings_path, 'r') as json_file:
+                data = json.load(json_file)
+
+            # Needs write permissions for the settings file (blender_settings.json).
             with open(settings_path, 'w+') as outfile:
                 data[key] = value
                 json.dump(data, outfile, indent=4, sort_keys=False)
@@ -140,11 +148,8 @@ class Blender(Tool):
     def loadFileExtension(self):
         global file_extension
         file_extension = self.loadJsonFile('file_extension')
-
-    ##  Loads and sets the path to blender.
-    def loadBlenderPath(self):
-        global blender_path
-        blender_path = self.loadJsonFile('blender_path')
+        if file_extension not in ['stl', 'obj', 'x3d', 'ply']:
+            file_extension = 'stl'
 
     ##  Loads and sets the path to this plugin.
     def loadPluginPath(self):
@@ -153,8 +158,13 @@ class Blender(Tool):
             depth = '/*' * path_depth
             plugin_path = glob.glob('{}{}/CuraBlender'.format(os.getcwd(), depth))
             if plugin_path:
-                plugin_path = plugin_path[0]
+                plugin_path = plugin_path[0].replace('\\', '/')
                 break
+
+    ##  Loads and sets the path to blender.
+    def loadBlenderPath(self):
+        global blender_path
+        blender_path = self.loadJsonFile('blender_path')
 
 
     ##  Gets the state of the "live reload" option.
@@ -220,6 +230,14 @@ class Blender(Tool):
     def setPluginPath(self):
         global plugin_path
         plugin_path = PluginRegistry.getInstance().getPluginPath('CuraBlender')
+
+    ##  Verifies the path to this plugin.
+    @classmethod
+    def verifyPluginPath(self):
+        verified_path = False
+        if os.path.exists(os.path.join(plugin_path, 'blender_settings.json')):
+            verified_path = True
+        return verified_path
 
     ##  Tries to set the path to blender automatically, if unsuccessful the user can set it manually.
     @classmethod
@@ -347,6 +365,9 @@ class Blender(Tool):
 
     ##  Checks if the selection of objects is correct and allowed and calls the actual function to open the file. 
     def openInBlender(self):
+        # Checks if path to this plugin is correct.
+        if not self.verifyPluginPath():
+            self.setPluginPath()
         # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
         if not verified_blender and (not blender_path or not self.verifyBlenderPath()):
             self.setBlenderPath()

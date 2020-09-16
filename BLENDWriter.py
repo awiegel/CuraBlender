@@ -34,8 +34,8 @@ class BLENDWriter(MeshWriter):
     #   \param mode    The mode we write our file in. Not important here.
     #   \return        Always true, because the actual writing happens internal and not in this job.
     def write(self, stream, nodes, mode = MeshWriter.OutputMode.BinaryMode):
-        # Checks if path to this plugin is set.
-        if not Blender.plugin_path:
+        # Checks if path to this plugin is correct.
+        if not Blender.Blender.verifyPluginPath():
             Blender.Blender.setPluginPath()
         # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
         if not Blender.verified_blender and (not Blender.blender_path or not Blender.Blender.verifyBlenderPath()):
