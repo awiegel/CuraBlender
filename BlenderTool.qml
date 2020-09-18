@@ -1,11 +1,11 @@
-// Import the standard GUI elements from QTQuick.
+// Imports the standard GUI elements from QTQuick.
 import QtQuick 2.10
 import QtQuick.Controls 1.4
 
-// Import the Uranium GUI elements, which are themed for Cura.
+// Imports the Uranium GUI elements, which are themed for Cura.
 import UM 1.5 as UM
 
-// Import the Cura GUI elements.
+// Imports the Cura GUI elements.
 import Cura 1.6 as Cura
 
 // Main component. Contains functions and smaller components like buttons and checkboxes.
@@ -36,7 +36,7 @@ Item
         plyButton.checked = type === plyImportType
 
     }
-    
+
     // Function for the import type buttons.
     function setImportType(type)
     {
@@ -86,7 +86,7 @@ Item
         color: UM.Theme.getColor("text")
     }
 
-    // Set import type to 'stl' button.
+    // Sets import type to 'stl' button.
     Button
     {
         id: stlButton
@@ -108,8 +108,8 @@ Item
         // Sets the current import type to 'stl' and unchecks every other box.
         onClicked: setImportType(stlImportType)
     }
-    
-    // Set import type to 'obj' button.
+
+    // Sets import type to 'obj' button.
     Button
     {
         id: objButton
@@ -133,7 +133,7 @@ Item
         onClicked: setImportType(objImportType)
     }
 
-    // Set import type to 'x3d' button.
+    // Sets import type to 'x3d' button.
     Button
     {
         id: x3dButton
@@ -157,7 +157,7 @@ Item
         onClicked: setImportType(x3dImportType)
     }
 
-    // Set import type to 'ply' button.
+    // Sets import type to 'ply' button.
     Button
     {
         id: plyButton

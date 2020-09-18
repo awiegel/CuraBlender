@@ -28,35 +28,37 @@ if Platform.isWindows():
 i18n_catalog = i18nCatalog('uranium')
 
 
-##  Reader class for .blend files.
 class BLENDReader(MeshReader):
-    ##  The constructor, which calls the super-class-contructor (MeshReader).
-    ##  Adds .blend as a supported file extension.
-    ##  Adds (stl, obj, x3d, ply) as supported file extensions for conversion.
+    """A MeshReader subclass that performs .blend file loading."""
+
     def __init__(self) -> None:
+        """The constructor, which calls the super-class-contructor (MeshReader).
+
+        Adds .blend as a supported file extension.
+        Adds (stl, obj, x3d, ply) as supported file extensions for conversion.
+        """
+
         super().__init__()
         # The supported extensions for converting the file.
         self._supported_extensions = ['.blend']
         self._supported_foreign_extensions = ['stl', 'obj', 'x3d', 'ply']
 
 
-    ##  Main entry point for reading the file.
-    #
-    #   \param file_path  The path of the file we try to open.
-    #   \return           A list of all nodes contained in the file.
     def read(self, file_path):
-        # Checks if path to this plugin is correct.
-        if not Blender.Blender.verifyPluginPath():
-            Blender.Blender.setPluginPath()
-        # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
-        if not Blender.verified_blender and (not Blender.blender_path or not Blender.Blender.verifyBlenderPath()):
-            Blender.Blender.setBlenderPath()
+        """Main entry point for reading the file.
+
+        :param file_path: The path of the file we try to open.
+        :return: A list of all nodes contained in the file.
+        """
+
+        # Checks if path to this plugin and path to blender are correct.
+        Blender.Blender.verifyPaths()
 
         # The return value: A list all nodes gets appended to. If file only contains one object, the list will be of length one.
         nodes = []
 
         # Only continues if correct path to blender is set.
-        if not Blender.verified_blender:
+        if not Blender.verified_blender_path:
             # Failure message already gets called at other place.
             Logger.logException('e', 'Problems with path to blender!')
         # Checks if file extension for conversion is supported (stl, obj, x3d, ply).
@@ -107,6 +109,12 @@ class BLENDReader(MeshReader):
 
     # After reading exported file change file reference to .blend clone.
     def _changeWatchedFile(self, old_path, new_path):
+        """After reading exported file change file reference to .blend clone.
+
+        :param old_path: The path of the converted file.
+        :param new_path: The path of the actual .blend file.
+        """
+
         # File watcher causes cura to crash on windows if threaded from removable device (usb, ...). Create QEventLoop earlier to fix this.
         if Platform.isWindows():
             QEventLoop()
@@ -114,9 +122,12 @@ class BLENDReader(MeshReader):
         Blender.fs_watcher.addPath(new_path)
 
 
-    # Reads all nodes contained in the file.
-    # Calculates the needed scale factor based on equivalence classes and finally scales all nodes equally.
     def _calculateAndSetScale(self, nodes):
+        """Calculates the needed scale factor based on equivalence classes and finally scales all nodes equally.
+
+        :param nodes: A list of all nodes contained in the file.
+        """
+
         # Checks auto scale flag in settings file.
         if Blender.Blender.loadJsonFile('auto_scale_on_read'):
             scale_factors = []
@@ -193,23 +204,27 @@ class BLENDReader(MeshReader):
                     message.show()
 
 
-    ##  The trigger connected with open blender function.
-    #
-    #   \param message  The opened message to hide with ignore button.
-    #   \param action   The pressed button on the message.
     def _openBlenderTrigger(self, message, action):
+        """The trigger connected with open blender function.
+
+        :param message: The opened message to hide with ignore button.
+        :param action: The pressed button on the message.
+        """
+
         if action == 'Open in Blender':
             command = '"{}" "{}"'.format(Blender.blender_path, self._file_path)
             subprocess.Popen(command, shell = True)
         message.hide()
 
 
-    ##  Converts the original file to a supported file extension based on prechosen preference and reads it.
-    #
-    #   \param file_path  The original path of the file we try to open.
-    #   \param nodes      A list of nodes on which we will append all nodes contained in the file.
-    #   \return           A temporary path of the converted file.
     def _convertAndOpenFile(self, file_path, nodes):
+        """Converts the original file to a supported file extension based on prechosen preference and reads it.
+
+        :param file_path: The original path of the file we try to open.
+        :param nodes: A list of nodes on which we will append all nodes contained in the file.
+        :return: A temporary path of the converted file.
+        """
+
         # Checks, if file path contains the _curasplit_ flag (which indicates an already opened and split file -> important for reload).
         if '_curasplit_' not in file_path:
             command = self.buildCommand('Count nodes', file_path)
@@ -220,7 +235,7 @@ class BLENDReader(MeshReader):
                     objects = int(nextline)
                     break
 
-            # If file has no objects, return None.
+            # If file has no objects, returns None.
             if objects == 0:
                 temp_path = 'no_object'
                 return temp_path
@@ -281,12 +296,14 @@ class BLENDReader(MeshReader):
         return temp_path
 
 
-    ##  Creates a temporary file with the random function to guarantee uniqueness. If multiple objects inside one file adds index.
-    #
-    #   \param file_path  The path of the original file.
-    #   \param index      If file contains multiple objects, it indicates the number of the current object.
-    #   \return           The path of the converted file.
     def _buildTempPath(self, file_path, index = None):
+        """Creates a temporary file with the random function to guarantee uniqueness. If multiple objects inside one file adds index.
+
+        :param file_path: The path of the original file.
+        :param index: If file contains multiple objects, it indicates the number of the current object.
+        :return: The path of the converted file.
+        """
+
         if index:
             temp_path = '{}/cura_temp_{}_{}.{}'.format(os.path.dirname(file_path), str(random.random())[2:], index, Blender.file_extension)
         else:
@@ -295,15 +312,17 @@ class BLENDReader(MeshReader):
         return temp_path
 
 
-    ##  Builds the command used by subprocess. Program inside the command is based on which mode gets called.
-    #
-    #   \param program      Mode used by the BlenderAPI to determine which program to run (set of instructions).
-    #   \param file_path    The path of the original file.  
-    #   \param instruction  String with the instruction for converting the file.
-    #   \param index        If file contains multiple objects, it indicates the number of the current object.
-    #   \return             The complete command needed by subprocess.
     @classmethod
     def buildCommand(self, program, file_path, instruction = None, index = None):
+        """Builds the command used by subprocess. Program inside the command is based on which mode gets called.
+
+        :param program: Mode used by the BlenderAPI to determine which program to run (set of instructions).
+        :param file_path: The path of the original file.  
+        :param instruction: String with the instruction for converting the file.
+        :param index: If file contains multiple objects, it indicates the number of the current object.
+        :return: The complete command needed by subprocess.
+        """
+
         self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
 
         # Our BlenderAPI uses sys.argv and the order of all arguments given to it needs to be fixed.
@@ -318,11 +337,13 @@ class BLENDReader(MeshReader):
         return command
 
 
-    ##  Converts the original file into a new file with prechosen file extension.
-    #
-    #   \param  file_path  The original file path of the opened file.
-    #   \return            String with the instruction for converting the file.
     def _importFile(self, file_path):
+        """Converts the original file into a new file with prechosen file extension.
+
+        :param file_path: The original file path of the opened file.
+        :return: String with the instruction for converting the file.
+        """
+
         if Blender.file_extension == 'stl' or Blender.file_extension == 'ply':
             import_file = "bpy.ops.export_mesh.{}(filepath = '{}', check_existing = False)".format(Blender.file_extension, file_path)
         elif Blender.file_extension == 'obj' or Blender.file_extension == 'x3d':
@@ -333,11 +354,13 @@ class BLENDReader(MeshReader):
         return import_file
 
 
-    ##  Reads the converted file and removes it after that.
-    #
-    #   \param temp_path  The converted file to read.
-    #   \return           The node contained in the readed file.
     def _openFile(self, temp_path):
+        """Reads the converted file and removes it after that.
+
+        :param temp_path: The converted file to read.
+        :return: The node contained in the readed file.
+        """
+
         reader = Application.getInstance().getMeshFileHandler().getReaderForFile(temp_path)
         try:
             if os.path.isfile(temp_path):
@@ -359,10 +382,9 @@ class BLENDReader(MeshReader):
         return node
 
 
-    ## Creates message for too complex files.
-    #
-    #   \param file_path  The file_path of the complex object.
     def _complexFileType(self):
+        """Creates message for too complex files."""
+
         Logger.logException('e', '%s is too complex for %s', Blender.file_extension, self._file_path)
         message = Message(text=i18n_catalog.i18nc('@info', 'This file is either too complex for {}-extension\nor no reader for this file type was found. \
                           \n\nPlease change the file extension:'.format(Blender.file_extension)),
@@ -409,11 +431,13 @@ class BLENDReader(MeshReader):
         message.show()
 
 
-    ##  The trigger connected for changing file type if it's too complex.
-    #
-    #   \param message  The opened message to hide with ignore button.
-    #   \param action   The pressed button on the message.
     def _changeFileType(self, message, action):
+        """The trigger connected for changing file type if it's too complex.
+
+        :param message: The opened message to hide with ignore button.
+        :param action: The pressed button on the message.
+        """
+
         if action == Blender.file_extension:
             fail_message = Message(text=i18n_catalog.i18nc('@info', 'Please choose a different file extension.'),
                                    title=i18n_catalog.i18nc('@info:title', 'Same file extension chosen'))

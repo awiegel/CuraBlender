@@ -16,36 +16,38 @@ from cura.Scene.CuraSceneNode import CuraSceneNode
 from . import Blender
 
 
-##  Writer class for .blend files.
 class BLENDWriter(MeshWriter):
-    ##  The constructor, which calls the super-class-contructor (MeshWriter).
-    ##  Adds a filewatcher to replace the saved file from the writer job by our own generated file.
+    """A MeshWriter subclass that performs .blend file saving."""
+
     def __init__(self):
+        """The constructor, which calls the super-class-contructor (MeshWriter).
+
+        Adds a filewatcher to replace the saved file from the writer job by our own generated file.
+        """
+
         super().__init__(add_to_recent_files = False)
 
         self._write_watcher = QFileSystemWatcher()
         self._write_watcher.fileChanged.connect(self._writeChanged)
 
 
-    ##  Main entry point for writing the file.
-    #
-    #   \param stream  Buffer containing new file name and more.
-    #   \param nodes   All nodes on the current scene.
-    #   \param mode    The mode we write our file in. Not important here.
-    #   \return        Always true, because the actual writing happens internal and not in this job.
     def write(self, stream, nodes, mode = MeshWriter.OutputMode.BinaryMode):
-        # Checks if path to this plugin is correct.
-        if not Blender.Blender.verifyPluginPath():
-            Blender.Blender.setPluginPath()
-        # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
-        if not Blender.verified_blender and (not Blender.blender_path or not Blender.Blender.verifyBlenderPath()):
-            Blender.Blender.setBlenderPath()
+        """Main entry point for writing the file.
+
+        :param stream: Buffer containing new file name and more.
+        :param nodes: All nodes on the current scene.
+        :param mode: The mode we write our file in. Not important here.
+        :return: Always true, because the actual writing happens internal and not in this job.
+        """
+
+        # Checks if path to this plugin and path to blender are correct.
+        Blender.Blender.verifyPaths()
 
         # The return value: The status either successful or unsuccessful.
         success = True
 
         # Only continues if correct path to blender is set.
-        if Blender.verified_blender:
+        if Blender.verified_blender_path:
             self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
 
             file_list = self._createFileList(nodes)
@@ -65,11 +67,13 @@ class BLENDWriter(MeshWriter):
         return success
 
 
-    ##  Creates a file list containing the file path of all nodes.
-    #
-    #   \param nodes  All nodes on the current scene.
-    #   \return       File list with all paths of real nodes.
     def _createFileList(self, nodes):
+        """Creates a file list containing the file path of all nodes.
+
+        :param nodes: All nodes on the current scene.
+        :return: File list with all paths of real nodes.
+        """
+
         file_list = []
         for node in nodes:
             for children in node.getAllChildren():
@@ -79,12 +83,14 @@ class BLENDWriter(MeshWriter):
         return file_list
 
 
-    ##  Creates a list (String) with instructions for every file in the file list.
-    #
-    #   \param file_list  File list with paths of nodes.
-    #   \return           A list (String) with all files with the .blend extension.
-    #   \return           A list (String) with all files with different file extensions.
     def _createExecuteList(self, file_list):
+        """Creates a list (String) with instructions for every file in the file list.
+
+        :param file_list: File list with paths of nodes.
+        :return: A list (String) with all files with the .blend extension.
+        :return: A list (String) with all files with different file extensions.
+        """
+
         blender_files = set()
         execute_list = ''
         # Checks the file extension and builds the command based on it.
@@ -120,15 +126,17 @@ class BLENDWriter(MeshWriter):
         return (blend_list, execute_list)
 
 
-    ##  Builds the command used by subprocess. Calls the 'Write' program.
-    #
-    #   \param program        Mode used by the BlenderAPI to determine which program to run (set of instructions).
-    #   \param file_name      The file name we selected when saving the file.
-    #   \param blender_files  A list (String) with all blender files.
-    #   \param execute_list   A list (String) with instructions for all other files.
-    #   \param temp_path      A temporary path for converting the blend file and preparing the 'Write' step.
-    #   \return               The complete command needed by subprocess.
     def _buildCommand(self, program, file_name, blender_files = None, execute_list = None, temp_path = None):
+        """Builds the command used by subprocess. Calls the 'Write' program.
+     
+        :param program: Mode used by the BlenderAPI to determine which program to run (set of instructions).
+        :param file_name: The file name we selected when saving the file.
+        :param blender_files: A list (String) with all blender files.
+        :param execute_list: A list (String) with instructions for all other files.
+        :param temp_path: A temporary path for converting the blend file and preparing the 'Write' step.
+        :return: The complete command needed by subprocess.
+        """
+
         if program == 'Write prepare':
             command = '"{}" "{}" --background --python "{}" -- "{}" "{}"'.format(Blender.blender_path, file_name, self._script_path, temp_path, program)
         else:
@@ -136,10 +144,12 @@ class BLENDWriter(MeshWriter):
         return command
 
 
-    ##  On file changed connection. Deletes the original saved file and replaces it with our own generated one.
-    #
-    #   \param path  The path of our file we try to save.
     def _writeChanged(self, path):
+        """On file changed connection. Deletes the original saved file and replaces it with our own generated one.
+
+        :param path: The path of our file we try to save.
+        """
+
         # Instead of overwriting files, blender saves the old one with .blend1 extension. This file is corrupted, so we delete it.
         if os.path.isfile(path + '1'):
             os.remove(path + '1')

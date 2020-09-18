@@ -1,6 +1,6 @@
 # Imports from Uranium.
 from UM.i18n import i18nCatalog
-from UM.Mesh.MeshWriter import MeshWriter #For the binary mode flag.
+from UM.Mesh.MeshWriter import MeshWriter # For the binary mode flag.
 
 # Imports from own package.
 from . import Blender, BLENDReader, BLENDWriter
@@ -10,8 +10,9 @@ from . import Blender, BLENDReader, BLENDWriter
 i18n_catalog = i18nCatalog('uranium')
 
 
-## Initialization of the plugin.
 def getMetaData():
+    """Initialization of the plugin."""
+
     return {
         "tool": {
             "name": "Blender",
@@ -38,8 +39,11 @@ def getMetaData():
     }
 
 
-## Registers the plugin in cura on start.
 def register(app):
-    return {'tool': Blender.Blender(),
+    """Registers the plugin in cura on start."""
+
+    return {
+            'tool': Blender.Blender(),
             'mesh_reader': BLENDReader.BLENDReader(),
-            'mesh_writer': BLENDWriter.BLENDWriter()}
+            'mesh_writer': BLENDWriter.BLENDWriter()
+            }

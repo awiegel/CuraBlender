@@ -33,22 +33,28 @@ i18n_catalog = i18nCatalog('uranium')
 
 
 # Global variables used by our other modules.
-global blender_path, plugin_path, file_extension, fs_watcher, outdated_blender_version
+global plugin_path, blender_path, file_extension, fs_watcher, verified_plugin_path, verified_blender_path, outdated_blender_version
 
+# A flag that indicates an already checked and confirmed plugin path.
+verified_plugin_path = False
+# A flag that indicates an already checked and confirmed blender version. 
+verified_blender_path = False
 # A flag that indicates an outdated blender version. 
 outdated_blender_version = False
-# A flag that indicates an already checked and confirmed blender version. 
-verified_blender = False
 
 
-##  Main class for blender plugin.
 class Blender(Tool):
-    ##  The constructor, which calls the super-class-contructor (Tool).
-    ##  Loads and sets all settings from settings file.
-    ##  Adds .blend as a supported file extension.
-    ##  Adds (stl, obj, x3d, ply) as supported file extensions for conversion.
-    ##  Adds menu items and the filewatcher trigger function.
+    """A Tool subclass and the main class for CuraBlender plugin."""
+
     def __init__(self):
+        """The constructor, which calls the super-class-contructor (Tool).
+
+        Loads and sets all settings from settings file.
+        Adds .blend as a supported file extension.
+        Adds (stl, obj, x3d, ply) as supported file extensions for conversion.
+        Adds menu items and the filewatcher trigger function.
+        """
+
         global fs_watcher
         super().__init__()
 
@@ -70,12 +76,14 @@ class Blender(Tool):
         self._foreign_file_watcher.fileChanged.connect(self._foreignFileChanged)
 
 
-    ##  Loads value from settings file (blender_settings.json) based on key.
-    #
-    #   \param key  The key inside the settings file.
-    #   \return     The value associated with the given key.
     @classmethod
     def loadJsonFile(self, key):
+        """Loads value from settings file (blender_settings.json) based on key.
+
+        :param key: The key inside the settings file.
+        :return: The value associated with the given key.
+        """
+
         settings_path = os.path.join(plugin_path, 'blender_settings.json')
         try:
             with open(settings_path, 'r') as json_file:
@@ -84,18 +92,20 @@ class Blender(Tool):
         except:
             value = True
         return value
-    
 
-    ##  Loads the settings file (blender_settings.json) and tries to store the value to the given key.
-    ##  The settings file (blender_settings.json) needs to have write permission for current user.
-    ##  If no permissions are granted, no changes won't be saved to the settings file and user needs to change settings manually.
-    #
-    #   \param key    The key inside the settings file.
-    #   \param value  The value we try to add to the requested key.
     @classmethod
     def writeJsonFile(self, key, value):
+        """Loads the settings file (blender_settings.json) and tries to store the value to the given key.
+
+        The settings file (blender_settings.json) needs to have write permission for current user.
+        If no permissions are granted, no changes won't be saved to the settings file and user needs to change settings manually.
+
+        :param key: The key inside the settings file.
+        :param value: The value we try to add to the requested key.
+        """
+
         # Checks if path to this plugin is correct.
-        if not self.verifyPluginPath():
+        if not verified_plugin_path and not self.verifyPluginPath():
             self.setPluginPath()
 
         settings_path = os.path.join(plugin_path, 'blender_settings.json')
@@ -111,8 +121,9 @@ class Blender(Tool):
             None
 
 
-    ## Loads and sets all settings from settings file.
     def loadAndSetSettings(self):
+        """Loads and sets all settings from settings file."""
+
         # Loads and sets the path to this plugin.
         self.loadPluginPath()
 
@@ -144,15 +155,17 @@ class Blender(Tool):
         self.loadBlenderPath()
 
 
-    ##  Loads and sets the file extension.
     def loadFileExtension(self):
+        """Loads and sets the file extension."""
+
         global file_extension
         file_extension = self.loadJsonFile('file_extension')
         if file_extension not in ['stl', 'obj', 'x3d', 'ply']:
             file_extension = 'stl'
 
-    ##  Loads and sets the path to this plugin.
     def loadPluginPath(self):
+        """Loads and sets the path to this plugin."""
+
         global plugin_path
         for path_depth in range(10):
             depth = '/*' * path_depth
@@ -161,63 +174,89 @@ class Blender(Tool):
                 plugin_path = plugin_path[0].replace('\\', '/')
                 break
 
-    ##  Loads and sets the path to blender.
     def loadBlenderPath(self):
+        """Loads and sets the path to blender."""
+
         global blender_path
         blender_path = self.loadJsonFile('blender_path')
 
 
-    ##  Gets the state of the "live reload" option.
     def getLiveReload(self):
+        """Gets the state of the "live reload" option."""
+
         return self._live_reload
     
-    ##  Gets the state of the "auto arrange on reload" option.
     def getAutoArrangeOnReload(self):
+        """Gets the state of the "auto arrange on reload" option."""
+
         return self._auto_arrange_on_reload
     
-    ##  Gets the state of the "auto scale on read" option.
     def getAutoScaleOnRead(self):
+        """Gets the state of the "auto scale on read" option."""
+
         return self._auto_scale_on_read
     
-    ##  Gets the state of the "show scale message" option.
     def getShowScaleMessage(self):
+        """Gets the state of the "show scale message" option."""
+
         return self._show_scale_message
     
-    ##  Gets the current import type.
     def getImportType(self):
+        """Gets the current import type."""
+
         return file_extension
 
 
-    ##  Sets the state of the "live reload" option.
     def setLiveReload(self, value):
+        """Sets the state of the "live reload" option.
+
+        :param value: The boolean value of the "live reload" option.
+        """
+
         if value != self._live_reload:
             self._live_reload = value
             self.propertyChanged.emit()
             self.writeJsonFile('live_reload', value)
     
-    ##  Sets the state of the "auto arrange on reload" option.
     def setAutoArrangeOnReload(self, value):
+        """Sets the state of the "auto arrange on reload" option.
+
+        :param value: The boolean value of the "auto arrange on reload" option.
+        """
+
         if value != self._auto_arrange_on_reload:
             self._auto_arrange_on_reload = value
             self.propertyChanged.emit()
             self.writeJsonFile('auto_arrange_on_reload', value)
     
-    ##  Sets the state of the "auto scale on read" option.
     def setAutoScaleOnRead(self, value):
+        """Sets the state of the "auto scale on read" option.
+
+        :param value: The boolean value of the "auto scale on read" option.
+        """
+
         if value != self._auto_scale_on_read:
             self._auto_scale_on_read = value
             self.propertyChanged.emit()
             self.writeJsonFile('auto_scale_on_read', value)
     
-    ##  Sets the state of the "show scale message" option.
     def setShowScaleMessage(self, value):
+        """Sets the state of the "show scale message" option.
+
+        :param value: The boolean value of the "show scale message" option.
+        """
+
         if value != self._show_scale_message:
             self._show_scale_message = value
             self.propertyChanged.emit()
             self.writeJsonFile('show_scale_message', value)
     
-    ##  Sets the import type to the given value.
     def setImportType(self, value):
+        """Sets the import type to the given value.
+
+        :param value: The given file_extension.
+        """
+
         global file_extension
         if value != file_extension:
             file_extension = value
@@ -226,22 +265,43 @@ class Blender(Tool):
 
 
     @classmethod
-    ## Sets the path to this plugin.
-    def setPluginPath(self):
-        global plugin_path
-        plugin_path = PluginRegistry.getInstance().getPluginPath('CuraBlender')
+    def verifyPaths(self):
+        """Checks if path to this plugin and path to blender are correct."""
 
-    ##  Verifies the path to this plugin.
+        # Checks if path to this plugin is correct, otherwise sets it.
+        if not verified_plugin_path and not Blender.verifyPluginPath():
+            Blender.setPluginPath()
+        # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
+        if not verified_blender_path and (not blender_path or not Blender.verifyBlenderPath()):
+            Blender.setBlenderPath()
+
+    @classmethod
+    def setPluginPath(self):
+        """Sets the path to this plugin."""
+
+        global plugin_path, verified_plugin_path
+        plugin_path = PluginRegistry.getInstance().getPluginPath('CuraBlender')
+        verified_plugin_path = True
+
     @classmethod
     def verifyPluginPath(self):
-        verified_path = False
-        if os.path.exists(os.path.join(plugin_path, 'blender_settings.json')):
-            verified_path = True
-        return verified_path
+        """Verifies the path to this plugin.
+        
+        :return: The boolean value of the correct plugin path.
+        """
 
-    ##  Tries to set the path to blender automatically, if unsuccessful the user can set it manually.
+        global verified_plugin_path
+        if os.path.exists(os.path.join(plugin_path, 'blender_settings.json')):
+            verified_plugin_path = True
+        return verified_plugin_path
+
     @classmethod
     def setBlenderPath(self, outdated = False):
+        """Tries to set the path to blender automatically, if unsuccessful the user can set it manually.
+
+        :param outdated: Flag if the found blender version is outdated.
+        """
+
         global blender_path
         # Checks blender path in settings file.
         if self.loadJsonFile('blender_path'):
@@ -270,11 +330,14 @@ class Blender(Tool):
         self.writeJsonFile('blender_path', blender_path)
 
 
-    ##  Verifies the path to blender.
     @classmethod
     def verifyBlenderPath(self):
-        global outdated_blender_version, verified_blender
-        verified_blender = False
+        """Verifies the path to blender.
+        
+        :return: The boolean value of the correct blender path.
+        """
+
+        global outdated_blender_version, verified_blender_path
         try:
             # Checks if blender path variable is set and the path really exists.
             if blender_path and os.path.exists(blender_path):
@@ -284,7 +347,7 @@ class Blender(Tool):
                 version = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
                 for nextline in version.stdout.splitlines():
                     if nextline == 'True':
-                        verified_blender = True
+                        verified_blender_path = True
                     elif nextline == 'False':
                         if not outdated_blender_version:
                             outdated_blender_version = True
@@ -302,15 +365,17 @@ class Blender(Tool):
         except:
             Logger.logException('e', 'Problems with path to blender!')
         finally:
-            return verified_blender
+            return verified_blender_path
 
 
-    ##  The trigger connected for downloading new blender version.
-    #
-    #   \param message  The opened message to hide with ignore button.
-    #   \param action   The pressed button on the message.
     @classmethod
     def _downloadBlenderTrigger(self, message, action):
+        """The trigger connected for downloading new blender version.
+
+        :param message: The opened message to hide with ignore button.
+        :param action: The pressed button on the message.
+        """
+
         if action == 'Download Blender':
             QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
         elif action == 'Set new Blender path':
@@ -319,13 +384,14 @@ class Blender(Tool):
         else:
             None
 
-
-    ##  The user can set the path to blender manually. Gets called when blender isn't found in the expected place.
-    #
-    #   \param blender_path  The global path to blender to set it. Here it's either wrong or doesn't exist.
-    #   \return              The correctly set path to blender.
     @classmethod
     def _openFileDialog(self, blender_path):
+        """The user can set the path to blender manually. Gets called when blender isn't found in the expected place.
+
+        :param blender_path: The global path to blender to set it. Here it's either wrong or doesn't exist.
+        :return: The correctly set path to blender.
+        """
+
         message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually.'),
                           title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
         message.show()
@@ -363,17 +429,14 @@ class Blender(Tool):
         return blender_path
 
 
-    ##  Checks if the selection of objects is correct and allowed and calls the actual function to open the file. 
     def openInBlender(self):
-        # Checks if path to this plugin is correct.
-        if not self.verifyPluginPath():
-            self.setPluginPath()
-        # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
-        if not verified_blender and (not blender_path or not self.verifyBlenderPath()):
-            self.setBlenderPath()
+        """Checks if the selection of objects is correct and allowed and calls the actual function to open the file. """
+
+        # Checks if path to this plugin and path to blender are correct.
+        Blender.verifyPaths()
 
         # Only continues if correct path to blender is set.
-        if verified_blender:
+        if verified_blender_path:
             # If no object is selected, check if the objects belong to more than one file.
             if len(Selection.getAllSelectedObjects()) == 0:
                 open_files = set()
@@ -388,7 +451,7 @@ class Blender(Tool):
                 # Opens the objects in blender, if they belong to only one file.
                 if len(open_files) == 1:
                     self.openBlender(open_files.pop())
-                else:                    
+                else:
                     message = Message(text=i18n_catalog.i18nc('@info','Select Object first.'),
                                       title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
                     message.show()
@@ -415,11 +478,12 @@ class Blender(Tool):
                                       title=i18n_catalog.i18nc('@info:title', 'Select only objects from same file'))
                     message.show()
 
-
-    ##  Opens the given file in blender. File must not necessarily be a blender file.
-    #
-    #   \param file_path  The path of the file to open in blender.
     def openBlender(self, file_path):
+        """Opens the given file in blender. File must not necessarily be a blender file.
+     
+        :param file_path: The path of the file to open in blender.
+        """
+
         # Gets the extension of the file.
         current_file_extension = os.path.splitext(file_path)
         current_file_extension = current_file_extension[1][1:]
@@ -454,12 +518,16 @@ class Blender(Tool):
         else:
             None
 
-    
-    ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.
-    ##  Explicit for foreign file types (stl, obj, x3d, ply).
-    #
-    #   \param path  The path to the changed foreign file.
+
     def _foreignFileChanged(self, path):
+        """On file changed connection. Rereads the changed file and updates it.
+        
+        This happens automatically and can be set on/off in the settings.
+        Explicit for foreign file types (stl, obj, x3d, ply).
+
+        :param path: The path to the changed foreign file.
+        """
+
         export_path = '{}.{}'.format(path[:-6], self._foreign_file_extension)
         execute_list = "bpy.ops.export_mesh.{}(filepath = '{}', check_existing = False)".format(self._foreign_file_extension, export_path)
 
@@ -479,15 +547,18 @@ class Blender(Tool):
         if os.path.isfile(path + '1'):
             # Instead of overwriting files, blender saves the old one with .blend1 extension. We don't want this file at all, but need the original one for the file watcher.
             os.remove(path + '1')
-    
+
         # Adds new filewatcher reference, because cura removes filewatcher automatically for other file types after reading.
         self._foreign_file_watcher.addPath(path)
-    
 
-    ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.
-    #
-    #   \param path  The path to the changed blender file.
     def _fileChanged(self, path):
+        """On file changed connection. Rereads the changed file and updates it.
+        
+        This happens automatically and can be set on/off in the settings.
+
+        :param path: The path to the changed blender file.
+        """
+
         # Checks auto reload flag in settings file.
         if self._live_reload:
             job = ReadMeshJob(path)
@@ -503,11 +574,14 @@ class Blender(Tool):
             # Instead of overwriting files, blender saves the old one with .blend1 extension. We don't want this file at all, but need the original one for the file watcher.
             os.remove(path + '1')
 
-
-    ##  On file changed connection. Rereads the changed file and updates it. This happens automatically and can be set on/off in the settings.
-    #
-    #   \param path  The path to the changed file.
     def _readMeshFinished(self, job):
+        """On file changed connection. Rereads the changed file and updates it.
+        
+        This happens automatically and can be set on/off in the settings.
+
+        :param path: The path to the changed file.
+        """
+
         job._nodes = []
         temp_flag = False
         # Gets all files from all objects on the build plate.
