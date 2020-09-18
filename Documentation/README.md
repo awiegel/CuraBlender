@@ -1,4 +1,4 @@
-# Blender Documentation <img align="right" width="10%" height="10%" src="images/blender_logo.png" />
+# CuraBlender Documentation <img align="right" width="10%" height="10%" src="images/blender_logo.png" />
 This Plugin provides support for reading/writing BLEND files directly without importing/exporting. \
 It also offers extra features that are described in this document.
 
@@ -9,9 +9,9 @@ It also offers extra features that are described in this document.
 - [2. Potential problems](#2-Potential-problems)
 - [3. Design decisions](#3-Design-decisions)
 - [4. Platform Support](#4-Platform-Support)
-- [5. ToDo](#5-ToDo)
+- [5. Known challenges](#5-Known-challenges)
 
-<br/>
+<br/> <br/>
 
 ## 1. Explanation of all files
 **Blender.py** \
@@ -75,11 +75,11 @@ Contains documentation, manual, hero shot and test review for this plugin.
 **LICENSE** \
 A license file.
 
-<div class="page"/>
+<div class="page"/> <br/> <br/> <br/> <br/>
 
 ## 2. Potential problems
 **Ultimaker Cura Version** \
-This plugin was developed and tested on **Ultimaker Cura 4.6**. It should also work for other versions of cura, but is not guaranteed.
+This plugin was developed and tested on **Ultimaker Cura 4.6 and 4.7**. It should also work for other versions of cura, but is not guaranteed.
 
 <br/>
 
@@ -87,7 +87,7 @@ This plugin was developed and tested on **Ultimaker Cura 4.6**. It should also w
 Because this plugin closely works with Blender and it's python API, there could occur problems with new Blender updates. Nearly every update of blender changes commands of it's python API and could potentially need some tweaks. \
 This is especially true between blender 2.7x and blender 2.8x where the concept of collections was introduced. \
 Therefore this plugin doesn't work for blender version 2.79 and below. \
-Successfully tested on **blender 2.80, blender 2.81, blender 2.82, blender 2.83**.
+Successfully tested on **blender 2.80, blender 2.81, blender 2.82, blender 2.83, blender 2.90**.
 
 <br/>
 
@@ -108,11 +108,10 @@ If it's the first use time and and the plugin cannot find the blender path autom
 However opening a file by the folder icon on the top right corner or by pressing `Open file(s)` will open another file explorer as if dragging a BLEND file into the cura window. \
 If the user drags a BLEND file into the cura window and cancels this process, cura might crash.
 
-<div class="page"/>
+<div class="page"/> <br/> <br/> <br/> <br/>
 
 ## 3. Design decisions
 In this section several design decisions will be further explained.
-
 
 **Structure:** \
 The main python modules of this plugin are split by category. This was done intentionally to enhance the readability. \
@@ -120,8 +119,6 @@ The main python modules of this plugin are split by category. This was done inte
 `BLENDReader.py` contains methods to read a BLEND file. \
 `BLENDReader.py` contains methods to write a BLEND file. \
 `BlenderAPI.py`  contains everything used from the blender library.
-
-<br/>
 
 **File conversion vs. manual processing:** \
 Reading/Writing a BLEND file is not done by manually processing the mesh data, but by converting it to a prechosen file type. \
@@ -131,24 +128,21 @@ Every process is an instance of blender inside a `silent` shell. This shell does
 The temporary file is created in the same directory as the original file. This is done for simplicity reasons. \
 Another option would be to save those temporary files in any other directory like %appdata%.
 
-<br/>
-
 **Node indexing:** \
 When processing BLEND files with multiple nodes, the plugin pre-processes the file with a counting method. The number of nodes is returned in a PIPE by subprocess. \
 Every object of this file gets a special postfix and is also indexed. Then every object is processed separately and mostly in parallel to increase load times. \
 The postfix with the index is important for reloading and writing the objects with the original file. The implementation needs to be uniformly everywhere the index is used. Otherwise the wrong object will be reloaded or written.
-
-<br/>
 
 **Reloading:** \
 When reloading files in cura, it isn't possible to add or reduce the number of nodes on the current build plate. \
 This means if the user opens a file in blender and adds or removes an object there, no object on the current build plate in cura will be added or removed. \
 This is the case because cura doesn't reload a file, but the node related to the file. The plugins implementation sticks closely to this concept. It's only possible to change and (live) reload nodes on the current build plate.
 
-<br/>
-
 **Settings file:** \
 This plugin saves all settings into a settings file. The checkboxes are directly connected with the settings file in real time. Those settings will be loaded on next start of cura.
+
+**Logs:** \
+This plugin creates some exception logs. These exceptions do not exceed the frame and are reduced to a minimum.
 
 <div class="page"/>
 
@@ -157,23 +151,14 @@ The path to blender gets verified everytime something is processed by this plugi
 Also the version of blender is being checked for compatibility (blender version 2.80 or higher is required). \
 Although this consumes some time, it is done to prevent a wrongly set path by the user or automatically by this plugin.
 
-<br/>
-
 **Foreign files in blender:** \
 If a foreign file (stl, obj, x3d, ply) gets opened in blender through the tools button, a BLEND file for it is being created. This file stays and is not being removed by the plugin, because a file watcher is added to this file and if the file gets removed, the file watcher will not work anymore.
-
-<br/>
-
-**Logs:** \
-This plugin creates some exception logs. These exceptions do not exceed the frame and are reduced to a minimum.
-
-<br/>
 
 **Time measurement:** \
 All methods were tested and optimized with pythons time module. Of course the loading times could be increased for the cost of security and validating. \
 To measure the time of a specific section simply use `start = time.time()` before the specific section and write `time.time() - start` in the log file after the specific section.
 
-<br/> <br/>
+<br/> <br/> <br/> <br/>
 
 ## 4. Platform Support
 This plugin works on every platform (**Windows**, **MacOS**, **Linux**) with full functionality. \
@@ -182,9 +167,9 @@ To achieve this, a lot of platform specific fixes were made. \
 * Subprocess uses a list of arguments or a tuple of arguments as one big argument on windows, while on macOS and linux only the first argument gets executed. Therefore all commands are one big string.
 * File watcher on windows crashes when a file from a removable device (usb, ...) gets opened. To fix this, a QEventLoop gets created before adding a path to the file watcher. Later this QEventLoop would be created anyways.
 
-<br/> <br/>
+<br/> <br/> <br/> <br/>
 
-## 5. ToDo
+## 5. Known challenges
 Adding/Removing objects inside a loaded BLEND file, doesn't add/remove the corresponding object in cura. \
 This plugin links objects from blender to cura by index. Adding/Removing an object would mess this up. \
 One idea is to hand over the object names from blender and add this to the file reference (file name).

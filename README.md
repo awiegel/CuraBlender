@@ -1,4 +1,4 @@
-# Blender Manual <img align="right" width="10%" height="10%" src="Documentation/images/blender_logo.png" />
+# CuraBlender Manual <img align="right" width="10%" height="10%" src="Documentation/images/blender_logo.png" />
 This is a plugin for ultimaker cura which integrates blender for a much better workflow.
 
 <br/>
@@ -60,16 +60,3 @@ The next time the user starts cura, those settings will be loaded.
 
 **Information:** If the path where Ultimaker Cura is installed is protected, the user either needs to give this settings file write permission or needs to start cura with administrator privileges. Another option is to modify the settings file manually. \
 **Quick tip:** Execute cura as administrator on the first time using this plugin and set the desired settings.
-
-<div class="page"/>
-
-**Example Workflow:** \
-The picture below shows an example of how the workflow with this plugin could look like. \
-<img align="center" width="100%" height="100%" src="Documentation/images/heroshot.png" title="Example workflow" />
-
-<br/> <br/> <br/>
-
-**Open/Save BLEND files:** \
-The pictures below show how to open/save BLEND files. \
-<img align="left" width="50%" height="50%" src="Documentation/images/open_file.PNG" title="Open file" />
-<img align="left" width="50%" height="50%" src="Documentation/images/save_file.PNG" title="Save file" />
