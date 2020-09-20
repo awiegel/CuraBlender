@@ -4,20 +4,27 @@ This is a plugin for ultimaker cura which integrates blender for a much better w
 <br/>
 
 ## Table of contents
-- [1. Installation](#1-Installation)
-- [2. Functionality / Usage](#2-Functionality-/-Usage)
+- [1. Trailer](#1-Trailer)
+- [2. Installation](#2-Installation)
+- [3. Functionality / Usage](#3-Functionality-/-Usage)
 
-<br/>
+<br/> <br/>
 
-## 1. Installation
+## 1. Trailer
+
+[![CuraBlender](https://img.youtube.com/vi/0cdlJtuJI70/0.jpg)](https://www.youtube.com/watch?v=0cdlJtuJI70)
+
+<br/> <br/>
+
+## 2. Installation
 To install this plugin, simply drag this folder unzipped into your plugins folder.
 
 The following tool is needed for this plugin to work:
 * **Blender** (https://www.blender.org/download/) (**2.80 or higher** is required)
 
-<br/>
+<div class="page"/> <br/> <br/>
 
-## 2. Functionality / Usage
+## 3. Functionality / Usage
 **Default functionality:**
 * **BLENDReader:** Provides support for reading BLEND files. \
 To open a BLEND file, simply press on `Open file(s)` or drag the desired file into the cura window.
@@ -31,7 +38,7 @@ The user can also load a BLEND file with multiple objects and delete some. Only 
 Foreign files (stl, obj, x3d, ply) can also be written to a BLEND file.
 Any combination of those objects/files will work.
 
-<div class="page"/>
+<br/> <br/>
 
 **Functionality accessed through the toolbar:** \
 <img align="right" width="60%" height="60%" src="Documentation/images/blender_interface.PNG" />
@@ -45,6 +52,8 @@ Opens the currently selected object in blender and also creates a file watcher f
 If the object inside blender will be changed and saved, cura automatically updates the corresponding object in cura.
 * **Select Import Type:**
 Blender files get converted into another file type on reading/writing. Select one of four types for this (stl, obj, x3d, ply).
+
+<div class="page"/>
 
 **Functions that can be turned on/off:**
 * **Live Reload:** Changing a loaded object in blender and saving it, automatically reloads the object inside cura.
