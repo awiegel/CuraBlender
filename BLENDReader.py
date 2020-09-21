@@ -128,28 +128,34 @@ class BLENDReader(MeshReader):
         :param nodes: A list of all nodes contained in the file.
         """
 
+        printer_height = 0.99 * Application.getInstance().getBuildVolume().getBoundingBox().height
+        printer_width = 0.7 * Application.getInstance().getBuildVolume().getBoundingBox().width
+        printer_depth = 0.7 * Application.getInstance().getBuildVolume().getBoundingBox().depth
+        print_area = min(printer_width, printer_depth)
+
         # Checks auto scale flag in settings file.
         if Blender.Blender.loadJsonFile('auto_scale_on_read'):
             scale_factors = []
             # Calculates the scale factor for all nodes.
             for node in nodes:
                 bounding_box = node.getBoundingBox()
-                width = bounding_box.width
                 height = bounding_box.height
+                width = bounding_box.width
                 depth = bounding_box.depth
+                area = min(width, depth)
 
                 message = None
                 scale_factor = 1
 
                 # Checks the minimum size of the object.
-                if((min(width, height, depth)) < 5):
-                    if not min(width, height, depth) == 0:
-                        scale_factor = scale_factor * (5 / (scale_factor * min(width, height, depth)))
+                if min(height, area) < 5:
+                    if not min(height, area) == 0:
+                        scale_factor = scale_factor * (5 / (scale_factor * min(height, area)))
                         message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size.'),
                                           title=i18n_catalog.i18nc('@info:title', 'Object was too small'))
                 # Checks the maximum height of the object.
-                if(scale_factor * height) > 290:
-                    scale_factor = scale_factor * (290 / (scale_factor * height))
+                if(scale_factor * height) > printer_height:
+                    scale_factor = scale_factor * (printer_height / (scale_factor * height))
                     message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size.'),
                                       title=i18n_catalog.i18nc('@info:title', 'Object was too high'))
 
@@ -157,28 +163,28 @@ class BLENDReader(MeshReader):
                 # The first object gets loaded exactly in the middle and every other object will be appended to it.
                 # Therefor divides the objects in equivalence classes in a grid pattern: 1, 9 (3*3), 25 (5*5), 49 (7*7), 81 (9*9).
                 if len(nodes) == 1:
-                    if((scale_factor * width) > 170) or ((scale_factor * depth) > 170):
-                        scale_factor = scale_factor * (170 / (scale_factor * max(width, depth)))
+                    if(scale_factor * area) > print_area:
+                        scale_factor = scale_factor * (print_area / (scale_factor * max(width, depth)))
                         message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too broad and got scaled down to maximum print size.'),
                                           title=i18n_catalog.i18nc('@info:title', 'Object was too broad'))
                 elif len(nodes) <= 9:
-                    if((scale_factor * width) > (170 / 3)) or ((scale_factor * depth) > (170 / 3)):
-                        scale_factor = scale_factor * ((170 / 3) / (scale_factor * max(width, depth)))
+                    if(scale_factor * area) > (print_area / 3):
+                        scale_factor = scale_factor * ((print_area / 3) / (scale_factor * max(width, depth)))
                         message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
                                           title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 25:
-                    if((scale_factor * width) > (170 / 5)) or ((scale_factor * depth) > (170 / 5)):
-                        scale_factor = scale_factor * ((170 / 5) / (scale_factor * max(width, depth)))
+                    if(scale_factor * area) > (print_area / 5):
+                        scale_factor = scale_factor * ((print_area / 5) / (scale_factor * max(width, depth)))
                         message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'), 
                                           title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 49:
-                    if((scale_factor * width) > (170 / 7)) or ((scale_factor * depth) > (170 / 7)):
-                        scale_factor = scale_factor * ((170 / 7) / (scale_factor * max(width, depth)))
+                    if(scale_factor * area) > (print_area / 7):
+                        scale_factor = scale_factor * ((print_area / 7) / (scale_factor * max(width, depth)))
                         message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
                                           title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 81:
-                    if((scale_factor * width) > (170 / 9)) or ((scale_factor * depth) > (170 / 9)):
-                        scale_factor = scale_factor * ((170 / 9) / (scale_factor * max(width, depth)))
+                    if(scale_factor * area) > (print_area / 9):
+                        scale_factor = scale_factor * ((print_area / 9) / (scale_factor * max(width, depth)))
                         message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
                                           title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
                 else:
