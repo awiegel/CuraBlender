@@ -18,6 +18,7 @@ from UM.Logger import Logger
 from UM.Message import Message
 from UM.Tool import Tool  # The PluginObject we're going to extend.
 from UM.PluginRegistry import PluginRegistry
+from UM.Preferences import Preferences
 from UM.Mesh.ReadMeshJob import ReadMeshJob  # To reload a mesh when its file was changed.
 from UM.Application import Application
 from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
@@ -33,7 +34,7 @@ i18n_catalog = i18nCatalog('uranium')
 
 
 # Global variables used by our other modules.
-global plugin_path, blender_path, file_extension, fs_watcher, verified_plugin_path, verified_blender_path, outdated_blender_version
+global plugin_path, fs_watcher, verified_plugin_path, verified_blender_path, outdated_blender_version
 
 # A flag that indicates an already checked and confirmed plugin path.
 verified_plugin_path = False
@@ -63,9 +64,6 @@ class Blender(Tool):
 
         self._supported_extensions = ['.blend']
         self._supported_foreign_extensions = ['stl', 'obj', 'x3d', 'ply']
-        
-        # Properties used by the qml file.
-        self.setExposedProperties("LiveReload", "AutoArrangeOnReload", "AutoScaleOnRead", "ShowScaleMessage", "ImportType")
 
         # Adds filewatcher and it's connection for blender files.
         fs_watcher = QFileSystemWatcher()
@@ -76,92 +74,59 @@ class Blender(Tool):
         self._foreign_file_watcher.fileChanged.connect(self._foreignFileChanged)
 
 
-    @classmethod
-    def loadJsonFile(self, key):
-        """Loads value from settings file (blender_settings.json) based on key.
-
-        :param key: The key inside the settings file.
-        :return: The value associated with the given key.
-        """
-
-        settings_path = os.path.join(plugin_path, 'blender_settings.json')
-        try:
-            with open(settings_path, 'r') as json_file:
-                data = json.load(json_file)
-                value = data[key]
-        except:
-            value = True
-        return value
-
-    @classmethod
-    def writeJsonFile(self, key, value):
-        """Loads the settings file (blender_settings.json) and tries to store the value to the given key.
-
-        The settings file (blender_settings.json) needs to have write permission for current user.
-        If no permissions are granted, no changes won't be saved to the settings file and user needs to change settings manually.
-
-        :param key: The key inside the settings file.
-        :param value: The value we try to add to the requested key.
-        """
-
-        # Checks if path to this plugin is correct.
-        if not verified_plugin_path and not self.verifyPluginPath():
-            self.setPluginPath()
-
-        settings_path = os.path.join(plugin_path, 'blender_settings.json')
-        try:
-            with open(settings_path, 'r') as json_file:
-                data = json.load(json_file)
-
-            # Needs write permissions for the settings file (blender_settings.json).
-            with open(settings_path, 'w+') as outfile:
-                data[key] = value
-                json.dump(data, outfile, indent=4, sort_keys=False)
-        except:
-            None
-
-
     def loadAndSetSettings(self):
         """Loads and sets all settings from settings file."""
 
+        self._preferences = Application.getInstance().getPreferences()
+
+        if not self._preferences._findPreference('cura_blender/live_reload'):
+            self._preferences.addPreference('cura_blender/live_reload', True)
+        if not self._preferences._findPreference('cura_blender/auto_arrange_on_reload'):
+            self._preferences.addPreference('cura_blender/auto_arrange_on_reload', True)
+        if not self._preferences._findPreference('cura_blender/auto_scale_on_read'):
+            self._preferences.addPreference('cura_blender/auto_scale_on_read', True)
+        if not self._preferences._findPreference('cura_blender/show_scale_message'):
+            self._preferences.addPreference('cura_blender/show_scale_message', True)
+        if not self._preferences._findPreference('cura_blender/file_extension'):
+            self._preferences.addPreference('cura_blender/file_extension', 'stl')
         # Loads and sets the path to this plugin.
         self.loadPluginPath()
 
-        # Loads and sets the "live reload" option.
-        if self.loadJsonFile('live_reload'):
-            self._live_reload = True
-        else:
-            self._live_reload = False
-        # Loads and sets the "auto arrange on reload" option.
-        if self.loadJsonFile('auto_arrange_on_reload'):
-            self._auto_arrange_on_reload = True
-        else:
-            self._auto_arrange_on_reload = False
-        # Loads and sets the "auto scale on read" option.
-        if self.loadJsonFile('auto_scale_on_read'):
-            self._auto_scale_on_read = True
-        else:
-            self._auto_scale_on_read = False
-        # Loads and sets the "show scale message" option.
-        if self.loadJsonFile('show_scale_message'):
-            self._show_scale_message = True
-        else:
-            self._show_scale_message = False
+        # # Loads and sets the "live reload" option.
+        # if self.loadJsonFile('live_reload'):
+        #     self._live_reload = True
+        # else:
+        #     self._live_reload = False
+        # # Loads and sets the "auto arrange on reload" option.
+        # if self.loadJsonFile('auto_arrange_on_reload'):
+        #     self._auto_arrange_on_reload = True
+        # else:
+        #     self._auto_arrange_on_reload = False
+        # # Loads and sets the "auto scale on read" option.
+        # if self.loadJsonFile('auto_scale_on_read'):
+        #     self._auto_scale_on_read = True
+        # else:
+        #     self._auto_scale_on_read = False
+        # # Loads and sets the "show scale message" option.
+        # if self.loadJsonFile('show_scale_message'):
+        #     self._show_scale_message = True
+        # else:
+        #     self._show_scale_message = False
         
         # Loads and sets the file extension.
-        self.loadFileExtension()
+        # self.loadFileExtension()
 
         # Loads and sets the path to blender.
         self.loadBlenderPath()
 
 
-    def loadFileExtension(self):
-        """Loads and sets the file extension."""
+    # def loadFileExtension(self):
+    #     """Loads and sets the file extension."""
 
-        global file_extension
-        file_extension = self.loadJsonFile('file_extension')
-        if file_extension not in ['stl', 'obj', 'x3d', 'ply']:
-            file_extension = 'stl'
+    #     global file_extension
+    #     file_extension = self.loadJsonFile('file_extension')
+    #     if file_extension not in ['stl', 'obj', 'x3d', 'ply']:
+    #         file_extension = 'stl'
 
     def loadPluginPath(self):
         """Loads and sets the path to this plugin."""
@@ -177,34 +142,34 @@ class Blender(Tool):
     def loadBlenderPath(self):
         """Loads and sets the path to blender."""
 
-        global blender_path
-        blender_path = self.loadJsonFile('blender_path')
+        if not self._preferences._findPreference('cura_blender/blender_path'):
+            self._preferences.addPreference('cura_blender/blender_path', '')
 
 
     def getLiveReload(self):
         """Gets the state of the "live reload" option."""
 
-        return self._live_reload
+        return self._preferences.getValue('cura_blender/live_reload')
     
     def getAutoArrangeOnReload(self):
         """Gets the state of the "auto arrange on reload" option."""
 
-        return self._auto_arrange_on_reload
+        return self._preferences.getValue('cura_blender/auto_arrange_on_reload')
     
     def getAutoScaleOnRead(self):
         """Gets the state of the "auto scale on read" option."""
 
-        return self._auto_scale_on_read
+        return self._preferences.getValue('cura_blender/auto_scale_on_read')
     
     def getShowScaleMessage(self):
         """Gets the state of the "show scale message" option."""
 
-        return self._show_scale_message
+        return self._preferences.getValue('cura_blender/show_scale_message')
     
     def getImportType(self):
         """Gets the current import type."""
 
-        return file_extension
+        return self._preferences.getValue('cura_blender/file_extension')
 
 
     def setLiveReload(self, value):
@@ -213,10 +178,9 @@ class Blender(Tool):
         :param value: The boolean value of the "live reload" option.
         """
 
-        if value != self._live_reload:
-            self._live_reload = value
+        if value != self._preferences.getValue('cura_blender/live_reload'):
+            self._preferences.setValue('cura_blender/live_reload', value)
             self.propertyChanged.emit()
-            self.writeJsonFile('live_reload', value)
     
     def setAutoArrangeOnReload(self, value):
         """Sets the state of the "auto arrange on reload" option.
@@ -224,10 +188,9 @@ class Blender(Tool):
         :param value: The boolean value of the "auto arrange on reload" option.
         """
 
-        if value != self._auto_arrange_on_reload:
-            self._auto_arrange_on_reload = value
+        if value != self._preferences.getValue('cura_blender/auto_arrange_on_reload'):
+            self._preferences.setValue('cura_blender/auto_arrange_on_reload', value)
             self.propertyChanged.emit()
-            self.writeJsonFile('auto_arrange_on_reload', value)
     
     def setAutoScaleOnRead(self, value):
         """Sets the state of the "auto scale on read" option.
@@ -235,10 +198,9 @@ class Blender(Tool):
         :param value: The boolean value of the "auto scale on read" option.
         """
 
-        if value != self._auto_scale_on_read:
-            self._auto_scale_on_read = value
+        if value != self._preferences.getValue('cura_blender/auto_scale_on_read'):
+            self._preferences.setValue('cura_blender/auto_scale_on_read', value)
             self.propertyChanged.emit()
-            self.writeJsonFile('auto_scale_on_read', value)
     
     def setShowScaleMessage(self, value):
         """Sets the state of the "show scale message" option.
@@ -246,10 +208,9 @@ class Blender(Tool):
         :param value: The boolean value of the "show scale message" option.
         """
 
-        if value != self._show_scale_message:
-            self._show_scale_message = value
+        if value != self._preferences.getValue('cura_blender/show_scale_message'):
+            self._preferences.setValue('cura_blender/show_scale_message', value)
             self.propertyChanged.emit()
-            self.writeJsonFile('show_scale_message', value)
     
     def setImportType(self, value):
         """Sets the import type to the given value.
@@ -257,11 +218,9 @@ class Blender(Tool):
         :param value: The given file_extension.
         """
 
-        global file_extension
-        if value != file_extension:
-            file_extension = value
+        if value != self._preferences.getValue('cura_blender/file_extension'):
+            self._preferences.setValue('cura_blender/file_extension', value)
             self.propertyChanged.emit()
-            self.writeJsonFile('file_extension', value)
 
 
     @classmethod
@@ -269,11 +228,11 @@ class Blender(Tool):
         """Checks if path to this plugin and path to blender are correct."""
 
         # Checks if path to this plugin is correct, otherwise sets it.
-        if not verified_plugin_path and not Blender.verifyPluginPath():
-            Blender.setPluginPath()
+        if not verified_plugin_path and not self.verifyPluginPath():
+            self.setPluginPath()
         # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
-        if not verified_blender_path and (not blender_path or not Blender.verifyBlenderPath()):
-            Blender.setBlenderPath()
+        if not verified_blender_path and (not Application.getInstance().getPreferences().getValue('cura_blender/blender_path') or not self.verifyBlenderPath()):
+            self.setBlenderPath()
 
     @classmethod
     def setPluginPath(self):
@@ -291,7 +250,7 @@ class Blender(Tool):
         """
 
         global verified_plugin_path
-        if os.path.exists(os.path.join(plugin_path, 'blender_settings.json')):
+        if os.path.exists(os.path.join(plugin_path, 'Blender.py')):
             verified_plugin_path = True
         return verified_plugin_path
 
@@ -303,9 +262,6 @@ class Blender(Tool):
         """
 
         global blender_path
-        # Checks blender path in settings file.
-        if self.loadJsonFile('blender_path'):
-            blender_path = self.loadJsonFile('blender_path')
         
         # Stops here because blender path from settings file is correct.
         if (not self.verifyBlenderPath() and not outdated_blender_version) or outdated:
@@ -326,8 +282,8 @@ class Blender(Tool):
             else:
                 self.verifyBlenderPath()
 
-        # Adds blender path in settings file (needs permission).
-        self.writeJsonFile('blender_path', blender_path)
+        # Adds blender path in settings file.
+        Application.getInstance().getPreferences().setValue('cura_blender/blender_path', blender_path)
 
 
     @classmethod
@@ -339,8 +295,9 @@ class Blender(Tool):
 
         global outdated_blender_version, verified_blender_path
         try:
+            blender_path = Application.getInstance().getPreferences().getValue('cura_blender/blender_path')
             # Checks if blender path variable is set and the path really exists.
-            if blender_path and os.path.exists(blender_path):
+            if os.path.exists(blender_path):
                 command = '"{}" --background --python-expr "import bpy; print(bpy.app.version >= (2, 80, 0))"'.format(blender_path)
                 # Calls blender in the background and jumps to the exception if it's not blender and therefor returns false.
                 # Also checks if the version of blender is compatible.
@@ -417,7 +374,7 @@ class Blender(Tool):
             message.hide()
             self.verifyBlenderPath()
             # Adds blender path in settings file (needs permission).
-            self.writeJsonFile('blender_path', blender_path)
+            self._preferences.setValue('cura_blender/blender_path', blender_path)
         else:
             message.hide()
             message = Message(text=i18n_catalog.i18nc('@info', 'No blender path was selected.'),
@@ -484,6 +441,8 @@ class Blender(Tool):
         :param file_path: The path of the file to open in blender.
         """
 
+        self._blender_path = Application.getInstance().getPreferences().getValue('cura_blender/blender_path')
+
         # Gets the extension of the file.
         current_file_extension = os.path.splitext(file_path)
         current_file_extension = current_file_extension[1][1:]
@@ -492,7 +451,7 @@ class Blender(Tool):
         if current_file_extension == 'blend':
             if '_curasplit_' in file_path:
                 file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-            command = '"{}" "{}"'.format(blender_path, file_path)
+            command = '"{}" "{}"'.format(self._blender_path, file_path)
             subprocess.Popen(command, shell = True)
         # Procedure for non-blender files.
         elif current_file_extension in self._supported_foreign_extensions:
@@ -507,10 +466,10 @@ class Blender(Tool):
             export_file = '{}/{}_cura_temp.blend'.format(os.path.dirname(file_path), os.path.basename(file_path).rsplit('.', 1)[0]).replace('//', '/')
             execute_list = execute_list + "bpy.ops.wm.save_as_mainfile(filepath = '{}')".format(export_file)
 
-            command = '"{}" --background --python-expr "import bpy; import sys; exec(sys.argv[-1])" -- "{}"'.format(blender_path, execute_list)
+            command = '"{}" --background --python-expr "import bpy; import sys; exec(sys.argv[-1])" -- "{}"'.format(self._blender_path, execute_list)
             subprocess.run(command, shell = True)
 
-            command = '"{}" "{}"'.format(blender_path, export_file)
+            command = '"{}" "{}"'.format(self._blender_path, export_file)
             subprocess.Popen(command, shell = True)
             
             self._foreign_file_extension = os.path.basename(file_path).rsplit('.', 1)[-1]
@@ -531,10 +490,10 @@ class Blender(Tool):
         export_path = '{}.{}'.format(path[:-6], self._foreign_file_extension)
         execute_list = "bpy.ops.export_mesh.{}(filepath = '{}', check_existing = False)".format(self._foreign_file_extension, export_path)
 
-        command = '"{}" "{}" --background --python-expr "import bpy; import sys; exec(sys.argv[-1])" -- "{}"'.format(blender_path, path, execute_list)
+        command = '"{}" "{}" --background --python-expr "import bpy; import sys; exec(sys.argv[-1])" -- "{}"'.format(self._blender_path, path, execute_list)
         subprocess.run(command, shell = True)
 
-        if self._live_reload and os.path.isfile(export_path):
+        if self._preferences.getValue('cura_blender/live_reload') and os.path.isfile(export_path):
             job = ReadMeshJob(export_path)
             job.finished.connect(self._readMeshFinished)
             job.start()
@@ -560,7 +519,7 @@ class Blender(Tool):
         """
 
         # Checks auto reload flag in settings file.
-        if self._live_reload:
+        if self._preferences.getValue('cura_blender/live_reload'):
             job = ReadMeshJob(path)
             job.finished.connect(self._readMeshFinished)
             job.start()
@@ -622,6 +581,6 @@ class Blender(Tool):
                 job._node.getMeshData()._file_name = temp_path
 
         # Checks auto arrange flag in settings file.
-        if self._auto_arrange_on_reload:
+        if self._preferences.getValue('cura_blender/auto_arrange_on_reload'):
             # Arranges the complete build plate after reloading a file. Can be set on/off in the settings.
             Application.getInstance().arrangeAll()

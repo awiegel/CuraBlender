@@ -8,6 +8,7 @@ from PyQt5.QtCore import QFileSystemWatcher
 # Imports from Uranium.
 from UM.Mesh.MeshWriter import MeshWriter
 from UM.Logger import Logger
+from UM.Application import Application
 
 # Imports from Cura.
 from cura.Scene.CuraSceneNode import CuraSceneNode
@@ -137,10 +138,11 @@ class BLENDWriter(MeshWriter):
         :return: The complete command needed by subprocess.
         """
 
+        self._blender_path = Application.getInstance().getPreferences().getValue('cura_blender/blender_path')
         if program == 'Write prepare':
-            command = '"{}" "{}" --background --python "{}" -- "{}" "{}"'.format(Blender.blender_path, file_name, self._script_path, temp_path, program)
+            command = '"{}" "{}" --background --python "{}" -- "{}" "{}"'.format(self._blender_path, file_name, self._script_path, temp_path, program)
         else:
-            command = '"{}" --background --python "{}" -- "{}" "{}" "{}" "{}"'.format(Blender.blender_path, self._script_path, file_name, execute_list, blender_files, program)
+            command = '"{}" --background --python "{}" -- "{}" "{}" "{}" "{}"'.format(self._blender_path, self._script_path, file_name, execute_list, blender_files, program)
         return command
 
 

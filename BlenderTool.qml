@@ -22,7 +22,7 @@ Item
     readonly property string plyImportType: "ply"
 
     // Gets the first state of the import type. Calls getImportType function and loads the attribute from the settings file.
-    property var currentImportType: UM.ActiveTool.properties.getValue("ImportType")
+    property var currentImportType: UM.Preferences.getValue("cura_blender/file_extension")
 
     // Updates the view every time the currentImportType changes
     onCurrentImportTypeChanged:
@@ -43,7 +43,9 @@ Item
         if (type != currentImportType)
         {
             // Calls setImportType function and sets current import type.
-            UM.ActiveTool.setProperty("ImportType", type)
+            // UM.ActiveTool.setProperty("ImportType", type)
+            UM.Preferences.setValue("cura_blender/file_extension", type);
+
         }
         // Deselection fix for current import type. Does not call the setImportType function.
         else
@@ -194,10 +196,10 @@ Item
         text: catalog.i18nc("@action:checkbox","Live Reload");
 
         // Calls getLiveReload and loads the entry state for live reload attribute.
-        checked: UM.ActiveTool.properties.getValue("LiveReload");
+        checked: UM.Preferences.getValue("cura_blender/live_reload");
 
         // Calls setLiveReload and sets the new state for live reload attribute.
-        onClicked: UM.ActiveTool.setProperty("LiveReload", checked);
+        onClicked: UM.Preferences.setValue("cura_blender/live_reload", checked);
     }
 
     // Checkbox for auto arrange on reload.
@@ -213,10 +215,10 @@ Item
         text: catalog.i18nc("@action:checkbox","Auto Arrange on reload");
 
         // Calls getAutoArrangeOnReload and loads the entry state for auto arrange on reload attribute.
-        checked: UM.ActiveTool.properties.getValue("AutoArrangeOnReload");
+        checked: UM.Preferences.getValue("cura_blender/auto_arrange_on_reload");
 
         // Calls setAutoArrangeOnReload and sets the new state for auto arrange on reload attribute.
-        onClicked: UM.ActiveTool.setProperty("AutoArrangeOnReload", checked);
+        onClicked: UM.Preferences.setValue("cura_blender/auto_arrange_on_reload", checked);
     }
 
     // Checkbox for auto scale on read.
@@ -232,10 +234,10 @@ Item
         text: catalog.i18nc("@action:checkbox","Auto Scale on read");
 
         // Calls getAutoScaleOnRead and loads the entry state for auto scale on read attribute.
-        checked: UM.ActiveTool.properties.getValue("AutoScaleOnRead");
+        checked: UM.Preferences.getValue("cura_blender/auto_scale_on_read");
 
         // Calls setAutoScaleOnRead and sets the new state for auto scale on read attribute.
-        onClicked: UM.ActiveTool.setProperty("AutoScaleOnRead", checked);
+        onClicked: UM.Preferences.setValue("cura_blender/auto_scale_on_read", checked);
     }
 
     // Checkbox for show scale message.
@@ -251,9 +253,9 @@ Item
         text: catalog.i18nc("@action:checkbox","Show Scale Message");
 
         // Calls getShowScaleMessage and loads the entry state for show scale message attribute.
-        checked: UM.ActiveTool.properties.getValue("ShowScaleMessage");
+        checked: UM.Preferences.getValue("cura_blender/show_scale_message");
 
         // Calls setShowScaleMessage and sets the new state for show scale message attribute.
-        onClicked: UM.ActiveTool.setProperty("ShowScaleMessage", checked);
+        onClicked: UM.Preferences.setValue("cura_blender/show_scale_message", checked);
     }
 }

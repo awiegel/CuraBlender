@@ -54,6 +54,8 @@ class BLENDReader(MeshReader):
         # Checks if path to this plugin and path to blender are correct.
         Blender.Blender.verifyPaths()
 
+        self._file_extension = Application.getInstance().getPreferences().getValue('cura_blender/file_extension')
+
         # The return value: A list all nodes gets appended to. If file only contains one object, the list will be of length one.
         nodes = []
 
@@ -62,9 +64,9 @@ class BLENDReader(MeshReader):
             # Failure message already gets called at other place.
             Logger.logException('e', 'Problems with path to blender!')
         # Checks if file extension for conversion is supported (stl, obj, x3d, ply).
-        elif Blender.file_extension not in self._supported_foreign_extensions:
-            Logger.logException('e', '%s file extension is not supported!', Blender.file_extension)
-            message = Message(text=i18n_catalog.i18nc('@info', '{} file extension is not supported!\nAllowed: {}'.format(Blender.file_extension, self._supported_foreign_extensions)),
+        elif self._file_extension not in self._supported_foreign_extensions:
+            Logger.logException('e', '%s file extension is not supported!', self._file_extension)
+            message = Message(text=i18n_catalog.i18nc('@info', '{} file extension is not supported!\nAllowed: {}'.format(self._file_extension, self._supported_foreign_extensions)),
                               title=i18n_catalog.i18nc('@info:title', 'Unsupported file extension'))
             message.show()
         # Path to blender and file extension is correct. Continues.
@@ -128,13 +130,13 @@ class BLENDReader(MeshReader):
         :param nodes: A list of all nodes contained in the file.
         """
 
-        printer_height = 0.99 * Application.getInstance().getBuildVolume().getBoundingBox().height
-        printer_width = 0.7 * Application.getInstance().getBuildVolume().getBoundingBox().width
-        printer_depth = 0.7 * Application.getInstance().getBuildVolume().getBoundingBox().depth
-        print_area = min(printer_width, printer_depth)
-
         # Checks auto scale flag in settings file.
-        if Blender.Blender.loadJsonFile('auto_scale_on_read'):
+        if Application.getInstance().getPreferences().getValue('cura_blender/auto_scale_on_read'):
+            printer_height = 0.99 * Application.getInstance().getBuildVolume().getBoundingBox().height
+            printer_width = 0.7 * Application.getInstance().getBuildVolume().getBoundingBox().width
+            printer_depth = 0.7 * Application.getInstance().getBuildVolume().getBoundingBox().depth
+            print_area = min(printer_width, printer_depth)
+
             scale_factors = []
             # Calculates the scale factor for all nodes.
             for node in nodes:
@@ -200,7 +202,7 @@ class BLENDReader(MeshReader):
                 node.scale(scale = Vector(scale_factor,scale_factor,scale_factor))
 
             # Checks scale message flag in settings file.
-            if Blender.Blender.loadJsonFile('show_scale_message'):
+            if Application.getInstance().getPreferences().getValue('cura_blender/show_scale_message'):
                 if message and not self._curasplit:
                     message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'), '[no_icon]', '[no_description]',
                                       button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
@@ -218,7 +220,7 @@ class BLENDReader(MeshReader):
         """
 
         if action == 'Open in Blender':
-            command = '"{}" "{}"'.format(Blender.blender_path, self._file_path)
+            command = '"{}" "{}"'.format(self._blender_path, self._file_path)
             subprocess.Popen(command, shell = True)
         message.hide()
 
@@ -311,9 +313,9 @@ class BLENDReader(MeshReader):
         """
 
         if index:
-            temp_path = '{}/cura_temp_{}_{}.{}'.format(os.path.dirname(file_path), str(random.random())[2:], index, Blender.file_extension)
+            temp_path = '{}/cura_temp_{}_{}.{}'.format(os.path.dirname(file_path), str(random.random())[2:], index, self._file_extension)
         else:
-            temp_path = '{}/cura_temp_{}.{}'.format(os.path.dirname(file_path), str(random.random())[2:], Blender.file_extension)
+            temp_path = '{}/cura_temp_{}.{}'.format(os.path.dirname(file_path), str(random.random())[2:], self._file_extension)
 
         return temp_path
 
@@ -330,15 +332,16 @@ class BLENDReader(MeshReader):
         """
 
         self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
+        self._blender_path = Application.getInstance().getPreferences().getValue('cura_blender/blender_path')
 
         # Our BlenderAPI uses sys.argv and the order of all arguments given to it needs to be fixed.
         if instruction:
             if index:
-                command = '"{}" "{}" --background --python "{}" -- "{}" "{}" "{}"'.format(Blender.blender_path, file_path, self._script_path, instruction, index, program)
+                command = '"{}" "{}" --background --python "{}" -- "{}" "{}" "{}"'.format(self._blender_path, file_path, self._script_path, instruction, index, program)
             else:
-                command = '"{}" "{}" --background --python "{}" -- "{}" "{}"'.format(Blender.blender_path, file_path, self._script_path, instruction, program)
+                command = '"{}" "{}" --background --python "{}" -- "{}" "{}"'.format(self._blender_path, file_path, self._script_path, instruction, program)
         else:
-            command = '"{}" "{}" --background --python "{}" -- "{}"'.format(Blender.blender_path, file_path, self._script_path, program)
+            command = '"{}" "{}" --background --python "{}" -- "{}"'.format(self._blender_path, file_path, self._script_path, program)
 
         return command
 
@@ -350,10 +353,10 @@ class BLENDReader(MeshReader):
         :return: String with the instruction for converting the file.
         """
 
-        if Blender.file_extension == 'stl' or Blender.file_extension == 'ply':
-            import_file = "bpy.ops.export_mesh.{}(filepath = '{}', check_existing = False)".format(Blender.file_extension, file_path)
-        elif Blender.file_extension == 'obj' or Blender.file_extension == 'x3d':
-            import_file = "bpy.ops.export_scene.{}(filepath = '{}', check_existing = False)".format(Blender.file_extension, file_path)
+        if self._file_extension == 'stl' or self._file_extension == 'ply':
+            import_file = "bpy.ops.export_mesh.{}(filepath = '{}', check_existing = False)".format(self._file_extension, file_path)
+        elif self._file_extension == 'obj' or self._file_extension == 'x3d':
+            import_file = "bpy.ops.export_scene.{}(filepath = '{}', check_existing = False)".format(self._file_extension, file_path)
         else:
             # Unreachable statement, because allowed file extension got already verified.
             None
@@ -391,11 +394,11 @@ class BLENDReader(MeshReader):
     def _complexFileType(self):
         """Creates message for too complex files."""
 
-        Logger.logException('e', '%s is too complex for %s', Blender.file_extension, self._file_path)
+        Logger.logException('e', '%s is too complex for %s', self._file_extension, self._file_path)
         message = Message(text=i18n_catalog.i18nc('@info', 'This file is either too complex for {}-extension\nor no reader for this file type was found. \
-                          \n\nPlease change the file extension:'.format(Blender.file_extension)),
-                          title=i18n_catalog.i18nc('@info:title', '{} is not supported for this file'.format(Blender.file_extension)))
-        if Blender.file_extension == 'stl':
+                          \n\nPlease change the file extension:'.format(self._file_extension)),
+                          title=i18n_catalog.i18nc('@info:title', '{} is not supported for this file'.format(self._file_extension)))
+        if self._file_extension == 'stl':
             message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
                               button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
             message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
@@ -404,7 +407,7 @@ class BLENDReader(MeshReader):
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
             message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-        if Blender.file_extension == 'obj':
+        if self._file_extension == 'obj':
             message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
             message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
@@ -413,7 +416,7 @@ class BLENDReader(MeshReader):
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
             message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-        if Blender.file_extension == 'x3d':
+        if self._file_extension == 'x3d':
             message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
             message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
@@ -422,7 +425,7 @@ class BLENDReader(MeshReader):
                               button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
             message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-        if Blender.file_extension == 'ply':
+        if self._file_extension == 'ply':
             message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
             message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
@@ -444,13 +447,13 @@ class BLENDReader(MeshReader):
         :param action: The pressed button on the message.
         """
 
-        if action == Blender.file_extension:
+        if action == self._file_extension:
             fail_message = Message(text=i18n_catalog.i18nc('@info', 'Please choose a different file extension.'),
                                    title=i18n_catalog.i18nc('@info:title', 'Same file extension chosen'))
             fail_message.show()
         else:
-            Blender.file_extension = action
-            Blender.Blender.writeJsonFile('file_extension', action)
+            self._file_extension = action
+            Application.getInstance().getPreferences().setValue('cura_blender/file_extension', action)
             message.hide()
             success_message = Message(text=i18n_catalog.i18nc('@info', 'File extension correctly changed.\n\nRetry loading the file.'),
                                       title=i18n_catalog.i18nc('@info:title', 'Change succesfully'))
