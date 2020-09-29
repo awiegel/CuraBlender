@@ -89,44 +89,20 @@ class Blender(Tool):
             self._preferences.addPreference('cura_blender/show_scale_message', True)
         if not self._preferences._findPreference('cura_blender/file_extension'):
             self._preferences.addPreference('cura_blender/file_extension', 'stl')
+
         # Loads and sets the path to this plugin.
         self.loadPluginPath()
-
-        # # Loads and sets the "live reload" option.
-        # if self.loadJsonFile('live_reload'):
-        #     self._live_reload = True
-        # else:
-        #     self._live_reload = False
-        # # Loads and sets the "auto arrange on reload" option.
-        # if self.loadJsonFile('auto_arrange_on_reload'):
-        #     self._auto_arrange_on_reload = True
-        # else:
-        #     self._auto_arrange_on_reload = False
-        # # Loads and sets the "auto scale on read" option.
-        # if self.loadJsonFile('auto_scale_on_read'):
-        #     self._auto_scale_on_read = True
-        # else:
-        #     self._auto_scale_on_read = False
-        # # Loads and sets the "show scale message" option.
-        # if self.loadJsonFile('show_scale_message'):
-        #     self._show_scale_message = True
-        # else:
-        #     self._show_scale_message = False
-        
-        # Loads and sets the file extension.
-        # self.loadFileExtension()
 
         # Loads and sets the path to blender.
         self.loadBlenderPath()
 
+        # self._preferences.removePreference('cura_blender/live_reload')
+        # self._preferences.removePreference('cura_blender/auto_arrange_on_reload')
+        # self._preferences.removePreference('cura_blender/auto_scale_on_read')
+        # self._preferences.removePreference('cura_blender/show_scale_message')
+        # self._preferences.removePreference('cura_blender/file_extension')
+        # self._preferences.removePreference('cura_blender/blender_path')
 
-    # def loadFileExtension(self):
-    #     """Loads and sets the file extension."""
-
-    #     global file_extension
-    #     file_extension = self.loadJsonFile('file_extension')
-    #     if file_extension not in ['stl', 'obj', 'x3d', 'ply']:
-    #         file_extension = 'stl'
 
     def loadPluginPath(self):
         """Loads and sets the path to this plugin."""
@@ -386,6 +362,40 @@ class Blender(Tool):
         return blender_path
 
 
+    @classmethod
+    def _checkGrouped(self):
+        is_grouped = False
+        for selection in Selection.getAllSelectedObjects():
+            if selection.callDecoration("isGroup"):
+                is_grouped = True
+                message = Message(text=i18n_catalog.i18nc('@info','Ungroup selected group?'),
+                                  title=i18n_catalog.i18nc('@info:title', 'Only nodes without group are allowed.'))
+                message.addAction('Ungroup', i18n_catalog.i18nc('@action:button', 'Ungroup'), '[no_icon]', '[no_description]',
+                                  button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+                message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'), '[no_icon]', '[no_description]',
+                                  button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
+                message.actionTriggered.connect(self._ungroupTrigger)
+                message.show()
+        return is_grouped
+
+    @classmethod
+    def _ungroupTrigger(self, message, action):
+        """The trigger connected with check grouped function.
+
+        :param message: The opened message to hide with ignore button.
+        :param action: The pressed button on the message.
+        """
+
+        if action == 'Ungroup':
+            Application.getInstance().ungroupSelected()
+            message.hide()
+            message = Message(text=i18n_catalog.i18nc('@info','Select a new object to open in blender!'),
+                              title=i18n_catalog.i18nc('@info:title', 'Your objects were ungrouped.'))
+            message.show()
+        else:
+            message.hide()
+
+
     def openInBlender(self):
         """Checks if the selection of objects is correct and allowed and calls the actual function to open the file. """
 
@@ -393,7 +403,7 @@ class Blender(Tool):
         Blender.verifyPaths()
 
         # Only continues if correct path to blender is set.
-        if verified_blender_path:
+        if verified_blender_path and not self._checkGrouped():
             # If no object is selected, check if the objects belong to more than one file.
             if len(Selection.getAllSelectedObjects()) == 0:
                 open_files = set()

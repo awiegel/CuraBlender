@@ -99,10 +99,16 @@ class BLENDReader(MeshReader):
                 if not self._curasplit:
                     for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
                         if isinstance(node, CuraSceneNode):
-                            # Checks if read is actually a reload or if the file is already opened and suppress the scaling message.
-                            if file_path in node.getMeshData().getFileName() or file_path[:-6] + '_curasplit_' in node.getMeshData().getFileName():
-                                self._curasplit = True
-                                break
+                            if node.callDecoration("isGroup"):
+                                for child in node.getChildren():
+                                    if file_path in child.getMeshData().getFileName() or file_path[:-6] + '_curasplit_' in child.getMeshData().getFileName():
+                                        self._curasplit = True
+                                        break
+                            else:
+                                # Checks if read is actually a reload or if the file is already opened and suppress the scaling message.
+                                if file_path in node.getMeshData().getFileName() or file_path[:-6] + '_curasplit_' in node.getMeshData().getFileName():
+                                    self._curasplit = True
+                                    break
 
                 self._calculateAndSetScale(nodes)
 
