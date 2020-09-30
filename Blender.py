@@ -16,7 +16,7 @@ from PyQt5.QtGui import QDesktopServices
 from UM.Platform import Platform
 from UM.Logger import Logger
 from UM.Message import Message
-from UM.Tool import Tool  # The PluginObject we're going to extend.
+from UM.Extension import Extension  # The PluginObject we're going to extend.
 from UM.PluginRegistry import PluginRegistry
 from UM.Preferences import Preferences
 from UM.Mesh.ReadMeshJob import ReadMeshJob  # To reload a mesh when its file was changed.
@@ -44,11 +44,11 @@ verified_blender_path = False
 outdated_blender_version = False
 
 
-class Blender(Tool):
-    """A Tool subclass and the main class for CuraBlender plugin."""
+class Blender(Extension):
+    """An Extension subclass and the main class for CuraBlender plugin."""
 
     def __init__(self):
-        """The constructor, which calls the super-class-contructor (Tool).
+        """The constructor, which calls the super-class-contructor (Extension).
 
         Loads and sets all settings from settings file.
         Adds .blend as a supported file extension.
@@ -72,6 +72,44 @@ class Blender(Tool):
         # Adds filewatcher and it's connection for foreign files.
         self._foreign_file_watcher = QFileSystemWatcher()
         self._foreign_file_watcher.fileChanged.connect(self._foreignFileChanged)
+
+        # Builds the extension menu.
+        self.setMenuName(i18n_catalog.i18nc('@item:inmenu', 'CuraBlender'))
+        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Open in Blender'), self.openInBlender)
+        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Settings'), self._openSettingsWindow)
+        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Debug Blenderpath'), self.showBlenderPath)
+
+
+    def _openSettingsWindow(self):
+        qml_file_path = os.path.join(PluginRegistry.getInstance().getPluginPath(self.getPluginId()), 'BlenderTool.qml')
+        self._console_window = Application.getInstance().createQmlComponent(qml_file_path, {'manager': self})
+        self._console_window.show()
+
+
+    @classmethod
+    def showBlenderPath(self):
+        message = Message(text=i18n_catalog.i18nc('@info', Application.getInstance().getPreferences().getValue('cura_blender/blender_path')),
+                          title=i18n_catalog.i18nc('@info:title', 'Currently set path to Blender'))
+        message.addAction('Set new path...', i18n_catalog.i18nc('@action:button', 'Set new path...'), '[no_icon]', '[no_description]',
+                          button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+        message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'), '[no_icon]', '[no_description]',
+                          button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
+        message.actionTriggered.connect(self._setBlenderPathTrigger)
+        message.show()
+
+    @classmethod
+    def _setBlenderPathTrigger(self, message, action):
+        """The trigger connected with change blender path function.
+
+        :param message: The opened message to hide with ignore button.
+        :param action: The pressed button on the message.
+        """
+
+        if action == 'Set new path...':
+            message.hide()
+            self._openFileDialog()
+        else:
+            message.hide()
 
 
     def loadAndSetSettings(self):
@@ -120,83 +158,6 @@ class Blender(Tool):
 
         if not self._preferences._findPreference('cura_blender/blender_path'):
             self._preferences.addPreference('cura_blender/blender_path', '')
-
-
-    def getLiveReload(self):
-        """Gets the state of the "live reload" option."""
-
-        return self._preferences.getValue('cura_blender/live_reload')
-    
-    def getAutoArrangeOnReload(self):
-        """Gets the state of the "auto arrange on reload" option."""
-
-        return self._preferences.getValue('cura_blender/auto_arrange_on_reload')
-    
-    def getAutoScaleOnRead(self):
-        """Gets the state of the "auto scale on read" option."""
-
-        return self._preferences.getValue('cura_blender/auto_scale_on_read')
-    
-    def getShowScaleMessage(self):
-        """Gets the state of the "show scale message" option."""
-
-        return self._preferences.getValue('cura_blender/show_scale_message')
-    
-    def getImportType(self):
-        """Gets the current import type."""
-
-        return self._preferences.getValue('cura_blender/file_extension')
-
-
-    def setLiveReload(self, value):
-        """Sets the state of the "live reload" option.
-
-        :param value: The boolean value of the "live reload" option.
-        """
-
-        if value != self._preferences.getValue('cura_blender/live_reload'):
-            self._preferences.setValue('cura_blender/live_reload', value)
-            self.propertyChanged.emit()
-    
-    def setAutoArrangeOnReload(self, value):
-        """Sets the state of the "auto arrange on reload" option.
-
-        :param value: The boolean value of the "auto arrange on reload" option.
-        """
-
-        if value != self._preferences.getValue('cura_blender/auto_arrange_on_reload'):
-            self._preferences.setValue('cura_blender/auto_arrange_on_reload', value)
-            self.propertyChanged.emit()
-    
-    def setAutoScaleOnRead(self, value):
-        """Sets the state of the "auto scale on read" option.
-
-        :param value: The boolean value of the "auto scale on read" option.
-        """
-
-        if value != self._preferences.getValue('cura_blender/auto_scale_on_read'):
-            self._preferences.setValue('cura_blender/auto_scale_on_read', value)
-            self.propertyChanged.emit()
-    
-    def setShowScaleMessage(self, value):
-        """Sets the state of the "show scale message" option.
-
-        :param value: The boolean value of the "show scale message" option.
-        """
-
-        if value != self._preferences.getValue('cura_blender/show_scale_message'):
-            self._preferences.setValue('cura_blender/show_scale_message', value)
-            self.propertyChanged.emit()
-    
-    def setImportType(self, value):
-        """Sets the import type to the given value.
-
-        :param value: The given file_extension.
-        """
-
-        if value != self._preferences.getValue('cura_blender/file_extension'):
-            self._preferences.setValue('cura_blender/file_extension', value)
-            self.propertyChanged.emit()
 
 
     @classmethod
@@ -254,7 +215,7 @@ class Blender(Tool):
 
             # If unsuccessful the user can set it manually.
             if not os.path.exists(blender_path):
-                blender_path = self._openFileDialog(blender_path)
+                blender_path = self._openFileDialog()
             else:
                 self.verifyBlenderPath()
 
@@ -318,7 +279,7 @@ class Blender(Tool):
             None
 
     @classmethod
-    def _openFileDialog(self, blender_path):
+    def _openFileDialog(self):
         """The user can set the path to blender manually. Gets called when blender isn't found in the expected place.
 
         :param blender_path: The global path to blender to set it. Here it's either wrong or doesn't exist.
@@ -348,18 +309,17 @@ class Blender(Tool):
         # Opens the file explorer and checks if file is selected.
         if dialog.exec_():
             message.hide()
+            # Gets the selected blender path from file explorer.
+            Application.getInstance().getPreferences().setValue('cura_blender/blender_path', ''.join(dialog.selectedFiles()))
             self.verifyBlenderPath()
-            # Adds blender path in settings file (needs permission).
-            self._preferences.setValue('cura_blender/blender_path', blender_path)
+            message = Message(text=i18n_catalog.i18nc('@info', Application.getInstance().getPreferences().getValue('cura_blender/blender_path')),
+                              title=i18n_catalog.i18nc('@info:title', 'New Blenderpath set'))
+            message.show()
         else:
             message.hide()
             message = Message(text=i18n_catalog.i18nc('@info', 'No blender path was selected.'),
                               title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
             message.show()
-
-        # Gets the selected blender path from file explorer.
-        blender_path = ''.join(dialog.selectedFiles())
-        return blender_path
 
 
     @classmethod

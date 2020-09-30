@@ -14,13 +14,7 @@ def getMetaData():
     """Initialization of the plugin."""
 
     return {
-        "tool": {
-            "name": "Blender",
-            "description": "Blender Tool",     # Displayed when hovering over the tool icon.
-            "icon": "images/blender_logo.svg", # Icon displayed on the button.
-            "tool_panel": "BlenderTool.qml",   # QML file used.
-            "weight": 1
-        },
+        'type': 'extension',
         'mesh_reader': [
             {
                 'extension': 'blend',
@@ -43,7 +37,7 @@ def register(app):
     """Registers the plugin in cura on start."""
 
     return {
-            'tool': Blender.Blender(),
+            'extension': Blender.Blender(),
             'mesh_reader': BLENDReader.BLENDReader(),
             'mesh_writer': BLENDWriter.BLENDWriter()
             }
