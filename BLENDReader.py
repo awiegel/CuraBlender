@@ -51,16 +51,13 @@ class BLENDReader(MeshReader):
         :return: A list of all nodes contained in the file.
         """
 
-        # Checks if path to this plugin and path to blender are correct.
-        Blender.Blender.verifyPaths()
-
         self._file_extension = Application.getInstance().getPreferences().getValue('cura_blender/file_extension')
 
         # The return value: A list all nodes gets appended to. If file only contains one object, the list will be of length one.
         nodes = []
 
         # Only continues if correct path to blender is set.
-        if not Blender.verified_blender_path:
+        if not Blender.Blender.verifyBlenderPath():
             # Failure message already gets called at other place.
             Logger.logException('e', 'Problems with path to blender!')
         # Checks if file extension for conversion is supported (stl, obj, x3d, ply).
@@ -326,7 +323,6 @@ class BLENDReader(MeshReader):
         return temp_path
 
 
-    @classmethod
     def buildCommand(self, program, file_path, instruction = None, index = None):
         """Builds the command used by subprocess. Program inside the command is based on which mode gets called.
 
@@ -337,7 +333,8 @@ class BLENDReader(MeshReader):
         :return: The complete command needed by subprocess.
         """
 
-        self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
+        self._plugin_path = Blender.Blender.getPluginPath()
+        self._script_path = os.path.join(self._plugin_path, 'BlenderAPI.py')
         self._blender_path = Application.getInstance().getPreferences().getValue('cura_blender/blender_path')
 
         # Our BlenderAPI uses sys.argv and the order of all arguments given to it needs to be fixed.

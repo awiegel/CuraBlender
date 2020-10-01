@@ -41,15 +41,14 @@ class BLENDWriter(MeshWriter):
         :return: Always true, because the actual writing happens internal and not in this job.
         """
 
-        # Checks if path to this plugin and path to blender are correct.
-        Blender.Blender.verifyPaths()
-
         # The return value: The status either successful or unsuccessful.
         success = True
 
-        # Only continues if correct path to blender is set.
-        if Blender.verified_blender_path:
-            self._script_path = os.path.join(Blender.plugin_path, 'BlenderAPI.py')
+        # Checks if path to blender is correct.
+        if Blender.Blender.verifyBlenderPath():
+
+            self._plugin_path = Blender.Blender.getPluginPath()
+            self._script_path = os.path.join(self._plugin_path, 'BlenderAPI.py')
 
             file_list = self._createFileList(nodes)
             

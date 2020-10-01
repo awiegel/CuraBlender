@@ -34,10 +34,8 @@ i18n_catalog = i18nCatalog('uranium')
 
 
 # Global variables used by our other modules.
-global plugin_path, fs_watcher, verified_plugin_path, verified_blender_path, outdated_blender_version
+global fs_watcher, verified_blender_path, outdated_blender_version
 
-# A flag that indicates an already checked and confirmed plugin path.
-verified_plugin_path = False
 # A flag that indicates an already checked and confirmed blender version. 
 verified_blender_path = False
 # A flag that indicates an outdated blender version. 
@@ -81,13 +79,16 @@ class Blender(Extension):
 
 
     def _openSettingsWindow(self):
+        """Opens the settings."""
+
         qml_file_path = os.path.join(PluginRegistry.getInstance().getPluginPath(self.getPluginId()), 'BlenderTool.qml')
         self._console_window = Application.getInstance().createQmlComponent(qml_file_path, {'manager': self})
         self._console_window.show()
 
 
-    @classmethod
     def showBlenderPath(self):
+        """Shows the current blender path and gives the option to set a new path."""
+
         message = Message(text=i18n_catalog.i18nc('@info', Application.getInstance().getPreferences().getValue('cura_blender/blender_path')),
                           title=i18n_catalog.i18nc('@info:title', 'Currently set path to Blender'))
         message.addAction('Set new path...', i18n_catalog.i18nc('@action:button', 'Set new path...'), '[no_icon]', '[no_description]',
@@ -97,9 +98,9 @@ class Blender(Extension):
         message.actionTriggered.connect(self._setBlenderPathTrigger)
         message.show()
 
-    @classmethod
+
     def _setBlenderPathTrigger(self, message, action):
-        """The trigger connected with change blender path function.
+        """The trigger connected with show blender path function.
 
         :param message: The opened message to hide with ignore button.
         :param action: The pressed button on the message.
@@ -113,26 +114,28 @@ class Blender(Extension):
 
 
     def loadAndSetSettings(self):
-        """Loads and sets all settings from settings file."""
+        """Loads and sets all settings from preferences."""
 
         self._preferences = Application.getInstance().getPreferences()
 
+        # Loads and sets the 'live reload' setting.
         if not self._preferences._findPreference('cura_blender/live_reload'):
             self._preferences.addPreference('cura_blender/live_reload', True)
+        # Loads and sets the 'auto_arrange_on_reload' setting.
         if not self._preferences._findPreference('cura_blender/auto_arrange_on_reload'):
             self._preferences.addPreference('cura_blender/auto_arrange_on_reload', True)
+        # Loads and sets the 'auto_scale_on_read' setting.
         if not self._preferences._findPreference('cura_blender/auto_scale_on_read'):
             self._preferences.addPreference('cura_blender/auto_scale_on_read', True)
+        # Loads and sets the 'show_scale_message' setting.
         if not self._preferences._findPreference('cura_blender/show_scale_message'):
             self._preferences.addPreference('cura_blender/show_scale_message', True)
+        # Loads and sets the file extension.
         if not self._preferences._findPreference('cura_blender/file_extension'):
             self._preferences.addPreference('cura_blender/file_extension', 'stl')
-
-        # Loads and sets the path to this plugin.
-        self.loadPluginPath()
-
         # Loads and sets the path to blender.
-        self.loadBlenderPath()
+        if not self._preferences._findPreference('cura_blender/blender_path'):
+            self._preferences.addPreference('cura_blender/blender_path', '')
 
         # self._preferences.removePreference('cura_blender/live_reload')
         # self._preferences.removePreference('cura_blender/auto_arrange_on_reload')
@@ -142,54 +145,59 @@ class Blender(Extension):
         # self._preferences.removePreference('cura_blender/blender_path')
 
 
-    def loadPluginPath(self):
-        """Loads and sets the path to this plugin."""
-
-        global plugin_path
-        for path_depth in range(10):
-            depth = '/*' * path_depth
-            plugin_path = glob.glob('{}{}/CuraBlender'.format(os.getcwd(), depth))
-            if plugin_path:
-                plugin_path = plugin_path[0].replace('\\', '/')
-                break
-
-    def loadBlenderPath(self):
-        """Loads and sets the path to blender."""
-
-        if not self._preferences._findPreference('cura_blender/blender_path'):
-            self._preferences.addPreference('cura_blender/blender_path', '')
-
-
     @classmethod
-    def verifyPaths(self):
-        """Checks if path to this plugin and path to blender are correct."""
+    def getPluginPath(self):
+        """Gets the path to this plugin.
 
-        # Checks if path to this plugin is correct, otherwise sets it.
-        if not verified_plugin_path and not self.verifyPluginPath():
-            self.setPluginPath()
-        # Checks if path to blender is set or if it's the correct path, otherwise tries to set it.
-        if not verified_blender_path and (not Application.getInstance().getPreferences().getValue('cura_blender/blender_path') or not self.verifyBlenderPath()):
-            self.setBlenderPath()
-
-    @classmethod
-    def setPluginPath(self):
-        """Sets the path to this plugin."""
-
-        global plugin_path, verified_plugin_path
-        plugin_path = PluginRegistry.getInstance().getPluginPath('CuraBlender')
-        verified_plugin_path = True
-
-    @classmethod
-    def verifyPluginPath(self):
-        """Verifies the path to this plugin.
-        
-        :return: The boolean value of the correct plugin path.
+        :return: The path to this plugin.
         """
 
-        global verified_plugin_path
-        if os.path.exists(os.path.join(plugin_path, 'Blender.py')):
-            verified_plugin_path = True
-        return verified_plugin_path
+        plugin_path = PluginRegistry.getInstance().getPluginPath('CuraBlender')
+        return plugin_path
+
+
+    @classmethod
+    def verifyBlenderPath(self):
+        """Verifies the path to blender.
+        
+        :return: The boolean value of the correct blender path.
+        """
+
+        global outdated_blender_version, verified_blender_path
+        try:
+            # Checks if path to blender is already verified.
+            if not verified_blender_path:
+                blender_path = Application.getInstance().getPreferences().getValue('cura_blender/blender_path')
+                # Checks if blender path is set and the path really exists.
+                if os.path.exists(blender_path):
+                    command = '"{}" --background --python-expr "import bpy; print(bpy.app.version >= (2, 80, 0))"'.format(blender_path)
+                    # Calls blender in the background and jumps to the exception if it's not blender and therefor returns false.
+                    # Also checks if the version of blender is compatible.
+                    version = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
+                    for nextline in version.stdout.splitlines():
+                        if nextline == 'True':
+                            verified_blender_path = True
+                        elif nextline == 'False':
+                            if not outdated_blender_version:
+                                outdated_blender_version = True
+                                Logger.logException('e', 'Your version of blender is outdated. Blender version 2.80 or higher is required!')
+                                message = Message(text=i18n_catalog.i18nc('@info', 'Please update your blender version.'),
+                                                title=i18n_catalog.i18nc('@info:title', 'Outdated blender version'))
+                                message.addAction('Download Blender', i18n_catalog.i18nc('@action:button', 'Download Blender'), '[no_icon]', '[no_description]',
+                                                button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+                                message.addAction('Set new Blender path', i18n_catalog.i18nc('@action:button', 'Set new Blender path'), '[no_icon]', '[no_description]',
+                                                button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
+                                message.actionTriggered.connect(self._downloadBlenderTrigger)
+                                message.show()
+                        else:
+                            None
+                        # Checks if path to blender is finally verified, otherwise sets a new path.
+                        if not verified_blender_path:
+                            self.setBlenderPath()
+        except:
+            Logger.logException('e', 'Problems with path to blender!')
+        finally:
+            return verified_blender_path
 
     @classmethod
     def setBlenderPath(self, outdated = False):
@@ -198,10 +206,8 @@ class Blender(Extension):
         :param outdated: Flag if the found blender version is outdated.
         """
 
-        global blender_path
-        
         # Stops here because blender path from settings file is correct.
-        if (not self.verifyBlenderPath() and not outdated_blender_version) or outdated:
+        if not outdated_blender_version or outdated:
             # Supports multi-platform
             if Platform.isWindows():
                 temp_blender_path = glob.glob('C:/Program Files/Blender Foundation/**/*.exe')
@@ -215,75 +221,17 @@ class Blender(Extension):
 
             # If unsuccessful the user can set it manually.
             if not os.path.exists(blender_path):
-                blender_path = self._openFileDialog()
+                self._openFileDialog()
             else:
+                # Adds blender path in settings file.
+                Application.getInstance().getPreferences().setValue('cura_blender/blender_path', blender_path)
                 self.verifyBlenderPath()
-
-        # Adds blender path in settings file.
-        Application.getInstance().getPreferences().setValue('cura_blender/blender_path', blender_path)
-
-
-    @classmethod
-    def verifyBlenderPath(self):
-        """Verifies the path to blender.
-        
-        :return: The boolean value of the correct blender path.
-        """
-
-        global outdated_blender_version, verified_blender_path
-        try:
-            blender_path = Application.getInstance().getPreferences().getValue('cura_blender/blender_path')
-            # Checks if blender path variable is set and the path really exists.
-            if os.path.exists(blender_path):
-                command = '"{}" --background --python-expr "import bpy; print(bpy.app.version >= (2, 80, 0))"'.format(blender_path)
-                # Calls blender in the background and jumps to the exception if it's not blender and therefor returns false.
-                # Also checks if the version of blender is compatible.
-                version = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
-                for nextline in version.stdout.splitlines():
-                    if nextline == 'True':
-                        verified_blender_path = True
-                    elif nextline == 'False':
-                        if not outdated_blender_version:
-                            outdated_blender_version = True
-                            Logger.logException('e', 'Your version of blender is outdated. Blender version 2.80 or higher is required!')
-                            message = Message(text=i18n_catalog.i18nc('@info', 'Please update your blender version.'),
-                                              title=i18n_catalog.i18nc('@info:title', 'Outdated blender version'))
-                            message.addAction('Download Blender', i18n_catalog.i18nc('@action:button', 'Download Blender'), '[no_icon]', '[no_description]',
-                                              button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-                            message.addAction('Set new Blender path', i18n_catalog.i18nc('@action:button', 'Set new Blender path'), '[no_icon]', '[no_description]',
-                                              button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
-                            message.actionTriggered.connect(self._downloadBlenderTrigger)
-                            message.show()
-                    else:
-                        None
-        except:
-            Logger.logException('e', 'Problems with path to blender!')
-        finally:
-            return verified_blender_path
-
-
-    @classmethod
-    def _downloadBlenderTrigger(self, message, action):
-        """The trigger connected for downloading new blender version.
-
-        :param message: The opened message to hide with ignore button.
-        :param action: The pressed button on the message.
-        """
-
-        if action == 'Download Blender':
-            QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
-        elif action == 'Set new Blender path':
-            message.hide()
-            self.setBlenderPath(outdated=True)
-        else:
-            None
 
     @classmethod
     def _openFileDialog(self):
         """The user can set the path to blender manually. Gets called when blender isn't found in the expected place.
 
         :param blender_path: The global path to blender to set it. Here it's either wrong or doesn't exist.
-        :return: The correctly set path to blender.
         """
 
         message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually.'),
@@ -321,9 +269,29 @@ class Blender(Extension):
                               title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
             message.show()
 
+    def _downloadBlenderTrigger(self, message, action):
+        """The trigger connected for downloading new blender version.
 
-    @classmethod
+        :param message: The opened message to hide with ignore button.
+        :param action: The pressed button on the message.
+        """
+
+        if action == 'Download Blender':
+            QDesktopServices.openUrl(QUrl('https://www.blender.org/download/'))
+        elif action == 'Set new Blender path':
+            message.hide()
+            self.setBlenderPath(outdated=True)
+        else:
+            None
+
+
+    # Grouped objects cannot be opened with blender due to mixed file reference.
     def _checkGrouped(self):
+        """Checks if the selected objects are grouped.
+
+        :return: The boolean value if objects are grouped.
+        """
+
         is_grouped = False
         for selection in Selection.getAllSelectedObjects():
             if selection.callDecoration("isGroup"):
@@ -338,7 +306,6 @@ class Blender(Extension):
                 message.show()
         return is_grouped
 
-    @classmethod
     def _ungroupTrigger(self, message, action):
         """The trigger connected with check grouped function.
 
@@ -360,7 +327,7 @@ class Blender(Extension):
         """Checks if the selection of objects is correct and allowed and calls the actual function to open the file. """
 
         # Checks if path to this plugin and path to blender are correct.
-        Blender.verifyPaths()
+        Blender.verifyBlenderPath()
 
         # Only continues if correct path to blender is set.
         if verified_blender_path and not self._checkGrouped():
@@ -377,7 +344,7 @@ class Blender(Extension):
                         open_files.add(file_path)
                 # Opens the objects in blender, if they belong to only one file.
                 if len(open_files) == 1:
-                    self.openBlender(open_files.pop())
+                    self._openBlender(open_files.pop())
                 else:
                     message = Message(text=i18n_catalog.i18nc('@info','Select Object first.'),
                                       title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
@@ -388,7 +355,7 @@ class Blender(Extension):
                     file_path = selection.getMeshData().getFileName()
                     if '_curasplit_' in file_path:
                         file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-                    self.openBlender(file_path)
+                    self._openBlender(file_path)
             # If multiple objects are selected, checks if they belong to more than one file.
             else:
                 files = set()
@@ -399,13 +366,13 @@ class Blender(Extension):
                     files.add(file_path)
                 # Opens the objects in blender, if they belong to only one file.
                 if len(files) == 1:
-                    self.openBlender(file_path)
+                    self._openBlender(file_path)
                 else:
                     message = Message(text=i18n_catalog.i18nc('@info','Please rethink your selection.'),
                                       title=i18n_catalog.i18nc('@info:title', 'Select only objects from same file'))
                     message.show()
 
-    def openBlender(self, file_path):
+    def _openBlender(self, file_path):
         """Opens the given file in blender. File must not necessarily be a blender file.
      
         :param file_path: The path of the file to open in blender.
