@@ -27,15 +27,12 @@ UM.Dialog
     height: minimumHeight
     minimumHeight: 200
 
-    // Connecting our variable to the computed property of our manager.
-    property string historyText: manager.historyText
-
     // Main component. Contains functions and smaller components like buttons and checkboxes.
     Item
     {
-        id: item
-        width: childrenRect.width
-        height: childrenRect.height
+        id: settings
+        width: base.width
+        height: base.height
         UM.I18nCatalog { id: catalog; name: "cura"}
 
         readonly property string stlImportType: "stl"
@@ -56,27 +53,6 @@ UM.Dialog
             objButton.checked = type === objImportType
             x3dButton.checked = type === x3dImportType
             plyButton.checked = type === plyImportType
-
-        }
-
-        // Function for the import type buttons.
-        function setImportType(type)
-        {
-            if (type != currentImportType)
-            {
-                // Calls setImportType function and sets current import type.
-                UM.Preferences.setValue("cura_blender/file_extension", type);
-
-            }
-            // Deselection fix for current import type. Does not call the setImportType function.
-            else
-            {
-                // Sets checked state of import type buttons.
-                stlButton.checked = type === stlImportType
-                objButton.checked = type === objImportType
-                x3dButton.checked = type === x3dImportType
-                plyButton.checked = type === plyImportType
-            }
         }
 
         // Only one file extension may be active at the same time.
@@ -91,7 +67,7 @@ UM.Dialog
             id: importTypeLabel
             anchors.left: parent.left
             anchors.top: parent.top
-            anchors.topMargin: UM.Theme.getSize("default_margin").width;
+            anchors.topMargin: UM.Theme.getSize("default_margin").width
             height: UM.Theme.getSize("setting").height
 
             // The actual text.
@@ -106,15 +82,15 @@ UM.Dialog
         {
             id: stlButton
 
-            anchors.left: parent.left;
-            anchors.top: importTypeLabel.bottom;
-            style: UM.Theme.styles.tool_button;
+            anchors.left: parent.left
+            anchors.top: importTypeLabel.bottom
+            style: UM.Theme.styles.tool_button
             property bool needBorder: true
             checkable: true
             exclusiveGroup: fileExtension
 
             // The path to the icon.
-            iconSource: "images/stl_icon.svg";
+            iconSource: "images/stl_icon.svg"
 
             // The text when holding the mouse over the icon.
             text: catalog.i18nc("@action:button", ".stl")
@@ -122,7 +98,7 @@ UM.Dialog
             z: 4
 
             // Sets the current import type to 'stl' and unchecks every other box.
-            onClicked: setImportType(stlImportType)
+            onClicked: UM.Preferences.setValue("cura_blender/file_extension", settings.stlImportType)
         }
 
         // Sets import type to 'obj' button.
@@ -130,16 +106,16 @@ UM.Dialog
         {
             id: objButton
 
-            anchors.left: stlButton.right;
-            anchors.leftMargin: UM.Theme.getSize("default_margin").width;
-            anchors.top: importTypeLabel.bottom;
-            style: UM.Theme.styles.tool_button;
+            anchors.left: stlButton.right
+            anchors.leftMargin: UM.Theme.getSize("default_margin").width
+            anchors.top: importTypeLabel.bottom
+            style: UM.Theme.styles.tool_button
             property bool needBorder: true
             checkable: true
             exclusiveGroup: fileExtension
 
             // The path to the icon.
-            iconSource: "images/obj_icon.svg";
+            iconSource: "images/obj_icon.svg"
             
             // The text when holding the mouse over the icon.
             text: catalog.i18nc("@action:button", ".obj")
@@ -147,7 +123,7 @@ UM.Dialog
             z:3
 
             // Sets the current import type to 'obj' and unchecks every other box.
-            onClicked: setImportType(objImportType)
+            onClicked: UM.Preferences.setValue("cura_blender/file_extension", settings.objImportType)
         }
 
         // Sets import type to 'x3d' button.
@@ -155,16 +131,16 @@ UM.Dialog
         {
             id: x3dButton
 
-            anchors.left: objButton.right;
-            anchors.leftMargin: UM.Theme.getSize("default_margin").width;
-            anchors.top: importTypeLabel.bottom;
-            style: UM.Theme.styles.tool_button;
+            anchors.left: objButton.right
+            anchors.leftMargin: UM.Theme.getSize("default_margin").width
+            anchors.top: importTypeLabel.bottom
+            style: UM.Theme.styles.tool_button
             property bool needBorder: true
             checkable: true
             exclusiveGroup: fileExtension
 
             // The path to the icon.
-            iconSource: "images/x3d_icon.svg";
+            iconSource: "images/x3d_icon.svg"
 
             // The text when holding the mouse over the icon.
             text: catalog.i18nc("@action:button", ".x3d")
@@ -172,7 +148,7 @@ UM.Dialog
             z: 2
 
             // Sets the current import type to 'x3d' and unchecks every other box.
-            onClicked: setImportType(x3dImportType)
+            onClicked: UM.Preferences.setValue("cura_blender/file_extension", settings.x3dImportType)
         }
 
         // Sets import type to 'ply' button.
@@ -180,16 +156,16 @@ UM.Dialog
         {
             id: plyButton
 
-            anchors.left: x3dButton.right;
-            anchors.leftMargin: UM.Theme.getSize("default_margin").width;
-            anchors.top: importTypeLabel.bottom;
-            style: UM.Theme.styles.tool_button;
+            anchors.left: x3dButton.right
+            anchors.leftMargin: UM.Theme.getSize("default_margin").width
+            anchors.top: importTypeLabel.bottom
+            style: UM.Theme.styles.tool_button
             property bool needBorder: true
             checkable: true
             exclusiveGroup: fileExtension
 
             // The path to the icon.
-            iconSource: "images/ply_icon.svg";
+            iconSource: "images/ply_icon.svg"
             
             // The text when holding the mouse over the icon.
             text: catalog.i18nc("@action:button", ".ply")
@@ -197,91 +173,91 @@ UM.Dialog
             z: 1
 
             // Sets the current import type to 'ply' and unchecks every other box.
-            onClicked: setImportType(plyImportType)
+            onClicked: UM.Preferences.setValue("cura_blender/file_extension", settings.plyImportType)
         }
 
         // Checkbox for live reload.
         Cura.CheckBoxWithTooltip
         {
             id: liveReloadCheckbox
-            anchors.left: parent.left;
-            anchors.top: stlButton.bottom;
-            anchors.topMargin: UM.Theme.getSize("default_margin").width;
+            anchors.left: parent.left
+            anchors.top: stlButton.bottom
+            anchors.topMargin: UM.Theme.getSize("default_margin").width
 
             // The text for this checkbox.
-            text: catalog.i18nc("@action:checkbox","Live Reload                                ");
+            text: catalog.i18nc("@action:checkbox","Live Reload                                ")
 
             // The tooltip for this checkbox.
             tooltip: catalog.i18nc("@checkbox:description", "Automatically reloads the object inside cura on change.")
 
             // Calls getLiveReload and loads the entry state for live reload attribute.
-            checked: UM.Preferences.getValue("cura_blender/live_reload");
+            checked: UM.Preferences.getValue("cura_blender/live_reload")
 
             // Calls setLiveReload and sets the new state for live reload attribute.
-            onClicked: UM.Preferences.setValue("cura_blender/live_reload", checked);
+            onClicked: UM.Preferences.setValue("cura_blender/live_reload", checked)
         }
 
         // Checkbox for auto arrange on reload.
         Cura.CheckBoxWithTooltip
         {
             id: autoArrangeOnReloadCheckbox
-            anchors.left: parent.left;
-            anchors.top: liveReloadCheckbox.bottom;
-            anchors.topMargin: UM.Theme.getSize("default_margin").width;
+            anchors.left: parent.left
+            anchors.top: liveReloadCheckbox.bottom
+            anchors.topMargin: UM.Theme.getSize("default_margin").width
 
             // The text for this checkbox.
-            text: catalog.i18nc("@action:checkbox","Auto Arrange on reload          ");
+            text: catalog.i18nc("@action:checkbox","Auto Arrange on reload          ")
 
             // The tooltip for this checkbox.
             tooltip: catalog.i18nc("@checkbox:description", "Auto arranges the complete build plate after 'Live Reload'.")
 
             // Calls getAutoArrangeOnReload and loads the entry state for auto arrange on reload attribute.
-            checked: UM.Preferences.getValue("cura_blender/auto_arrange_on_reload");
+            checked: UM.Preferences.getValue("cura_blender/auto_arrange_on_reload")
 
             // Calls setAutoArrangeOnReload and sets the new state for auto arrange on reload attribute.
-            onClicked: UM.Preferences.setValue("cura_blender/auto_arrange_on_reload", checked);
+            onClicked: UM.Preferences.setValue("cura_blender/auto_arrange_on_reload", checked)
         }
 
         // Checkbox for auto scale on read.
         Cura.CheckBoxWithTooltip
         {
             id: autoScaleOnReadCheckbox
-            anchors.left: liveReloadCheckbox.right;
-            anchors.top: stlButton.bottom;
-            anchors.topMargin: UM.Theme.getSize("default_margin").width;
+            anchors.left: liveReloadCheckbox.right
+            anchors.top: stlButton.bottom
+            anchors.topMargin: UM.Theme.getSize("default_margin").width
 
             // The text for this checkbox.
-            text: catalog.i18nc("@action:checkbox","Auto Scale on read");
+            text: catalog.i18nc("@action:checkbox","Auto Scale on read")
 
             // The tooltip for this checkbox.
             tooltip: catalog.i18nc("@checkbox:description", "Scales object to fit the build plate.")
 
             // Calls getAutoScaleOnRead and loads the entry state for auto scale on read attribute.
-            checked: UM.Preferences.getValue("cura_blender/auto_scale_on_read");
+            checked: UM.Preferences.getValue("cura_blender/auto_scale_on_read")
 
             // Calls setAutoScaleOnRead and sets the new state for auto scale on read attribute.
-            onClicked: UM.Preferences.setValue("cura_blender/auto_scale_on_read", checked);
+            onClicked: UM.Preferences.setValue("cura_blender/auto_scale_on_read", checked)
         }
 
         // Checkbox for show scale message.
         Cura.CheckBoxWithTooltip
         {
             id: showScaleMessageCheckbox
-            anchors.left: autoArrangeOnReloadCheckbox.right;
-            anchors.top: autoScaleOnReadCheckbox.bottom;
-            anchors.topMargin: UM.Theme.getSize("default_margin").width;
+            anchors.left: autoArrangeOnReloadCheckbox.right
+            anchors.top: autoScaleOnReadCheckbox.bottom
+            anchors.topMargin: UM.Theme.getSize("default_margin").width
 
             // The text for this checkbox.
-            text: catalog.i18nc("@action:checkbox","Show Scale Message");
+            text: catalog.i18nc("@action:checkbox","Show Scale Message")
 
             // The tooltip for this checkbox.
             tooltip: catalog.i18nc("@checkbox:description", "Shows or hides the auto scale message.")
 
             // Calls getShowScaleMessage and loads the entry state for show scale message attribute.
-            checked: UM.Preferences.getValue("cura_blender/show_scale_message");
+            checked: UM.Preferences.getValue("cura_blender/show_scale_message")
 
             // Calls setShowScaleMessage and sets the new state for show scale message attribute.
-            onClicked: UM.Preferences.setValue("cura_blender/show_scale_message", checked);
+            onClicked: UM.Preferences.setValue("cura_blender/show_scale_message", checked)
         }
 
         // Help button.
@@ -290,16 +266,16 @@ UM.Dialog
             id: helpButton
             anchors.left: parent.right
             anchors.top: parent.top
-            height: UM.Theme.getSize("setting_control").height;
+            height: UM.Theme.getSize("setting_control").height
             iconSource: UM.Theme.getIcon("external_link")
 
             // The graphical representation of this object inside cura.
-            text: catalog.i18nc("@action:button", "Help");
+            text: catalog.i18nc("@action:button", "Help")
 
             // Opens the help URL with web browser.
             onClicked:
             {
-                const url = "https://github.com/awiegel/CuraBlender";
+                const url = "https://github.com/awiegel/CuraBlender"
                 Qt.openUrlExternally(url)
             }
         }
