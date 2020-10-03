@@ -12,7 +12,6 @@ from UM.Message import Message
 from UM.Application import Application
 from UM.Scene.Iterator.DepthFirstIterator import DepthFirstIterator
 from UM.Math.Vector import Vector
-from UM.i18n import i18nCatalog
 
 # Imports from Cura.
 from cura.Scene.CuraSceneNode import CuraSceneNode
@@ -22,10 +21,6 @@ from . import Blender
 
 if Platform.isWindows():
     from PyQt5.QtCore import QEventLoop  # Windows fix for using file watcher on removable devices.
-
-
-# The catalog used for showing messages.
-i18n_catalog = i18nCatalog('uranium')
 
 
 class BLENDReader(MeshReader):
@@ -63,8 +58,8 @@ class BLENDReader(MeshReader):
         # Checks if file extension for conversion is supported (stl, obj, x3d, ply).
         elif self._file_extension not in self._supported_foreign_extensions:
             Logger.logException('e', '%s file extension is not supported!', self._file_extension)
-            message = Message(text=i18n_catalog.i18nc('@info', '{} file extension is not supported!\nAllowed: {}'.format(self._file_extension, self._supported_foreign_extensions)),
-                              title=i18n_catalog.i18nc('@info:title', 'Unsupported file extension'))
+            message = Message(text=Blender.catalog.i18nc('@info', '{} file extension is not supported!\nAllowed: {}'.format(self._file_extension, self._supported_foreign_extensions)),
+                              title=Blender.catalog.i18nc('@info:title', 'Unsupported file extension'))
             message.show()
         # Path to blender and file extension is correct. Continues.
         else:
@@ -77,14 +72,14 @@ class BLENDReader(MeshReader):
             # Checks if file does not contain any objects.
             if temp_path == 'no_object':
                 Logger.logException('e', '%s does not contain any objects!', file_path)
-                message = Message(text=i18n_catalog.i18nc('@info', '{}\ndoes not contain any objects.'.format(file_path)),
-                                  title=i18n_catalog.i18nc('@info:title', 'No object found'))
+                message = Message(text=Blender.catalog.i18nc('@info', '{}\ndoes not contain any objects.'.format(file_path)),
+                                  title=Blender.catalog.i18nc('@info:title', 'No object found'))
                 message.show()
             # Checks if user has permission for path of current file.
             elif temp_path == 'no_permission':
                 Logger.logException('e', '%s - write permission needed!', file_path)
-                message = Message(text=i18n_catalog.i18nc('@info', 'Blender plugin needs write permission.\nPlease move your file or give permission.\n\nPath: {}'.format(file_path)),
-                                  title=i18n_catalog.i18nc('@info:title', 'Not enough permission for this path'))
+                message = Message(text=Blender.catalog.i18nc('@info', 'Blender plugin needs write permission.\nPlease move your file or give permission.\n\nPath: {}'.format(file_path)),
+                                  title=Blender.catalog.i18nc('@info:title', 'Not enough permission for this path'))
                 message.show()
             # Checks if the file is too complex for aimed file extension.
             elif temp_path == 'complex_filetype':
@@ -156,13 +151,13 @@ class BLENDReader(MeshReader):
                 if min(height, area) < 5:
                     if not min(height, area) == 0:
                         scale_factor = scale_factor * (5 / (scale_factor * min(height, area)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size.'),
-                                          title=i18n_catalog.i18nc('@info:title', 'Object was too small'))
+                        message = Message(text=Blender.catalog.i18nc('@info', 'Your object was too small and got scaled up to minimum print size.'),
+                                          title=Blender.catalog.i18nc('@info:title', 'Object was too small'))
                 # Checks the maximum height of the object.
                 if(scale_factor * height) > printer_height:
                     scale_factor = scale_factor * (printer_height / (scale_factor * height))
-                    message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size.'),
-                                      title=i18n_catalog.i18nc('@info:title', 'Object was too high'))
+                    message = Message(text=Blender.catalog.i18nc('@info', 'Your object was too high and got scaled down to maximum print size.'),
+                                      title=Blender.catalog.i18nc('@info:title', 'Object was too high'))
 
                 # Checks the maximum width/depth based on number of objects, because cura doesn't allow to manipulate the position of the object.
                 # The first object gets loaded exactly in the middle and every other object will be appended to it.
@@ -170,28 +165,28 @@ class BLENDReader(MeshReader):
                 if len(nodes) == 1:
                     if(scale_factor * area) > print_area:
                         scale_factor = scale_factor * (print_area / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your object was too broad and got scaled down to maximum print size.'),
-                                          title=i18n_catalog.i18nc('@info:title', 'Object was too broad'))
+                        message = Message(text=Blender.catalog.i18nc('@info', 'Your object was too broad and got scaled down to maximum print size.'),
+                                          title=Blender.catalog.i18nc('@info:title', 'Object was too broad'))
                 elif len(nodes) <= 9:
                     if(scale_factor * area) > (print_area / 3):
                         scale_factor = scale_factor * ((print_area / 3) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
-                                          title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                        message = Message(text=Blender.catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
+                                          title=Blender.catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 25:
                     if(scale_factor * area) > (print_area / 5):
                         scale_factor = scale_factor * ((print_area / 5) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'), 
-                                          title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                        message = Message(text=Blender.catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'), 
+                                          title=Blender.catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 49:
                     if(scale_factor * area) > (print_area / 7):
                         scale_factor = scale_factor * ((print_area / 7) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
-                                          title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                        message = Message(text=Blender.catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
+                                          title=Blender.catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 81:
                     if(scale_factor * area) > (print_area / 9):
                         scale_factor = scale_factor * ((print_area / 9) / (scale_factor * max(width, depth)))
-                        message = Message(text=i18n_catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
-                                          title=i18n_catalog.i18nc('@info:title', 'Objects were too broad'))
+                        message = Message(text=Blender.catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
+                                          title=Blender.catalog.i18nc('@info:title', 'Objects were too broad'))
                 else:
                     None
 
@@ -207,9 +202,9 @@ class BLENDReader(MeshReader):
             # Checks scale message flag in settings file.
             if Application.getInstance().getPreferences().getValue('cura_blender/show_scale_message'):
                 if message and not self._curasplit:
-                    message.addAction('Open in Blender', i18n_catalog.i18nc('@action:button', 'Open in Blender'), '[no_icon]', '[no_description]',
+                    message.addAction('Open in Blender', Blender.catalog.i18nc('@action:button', 'Open in Blender'), '[no_icon]', '[no_description]',
                                       button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-                    message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'), '[no_icon]', '[no_description]',
+                    message.addAction('Ignore', Blender.catalog.i18nc('@action:button', 'Ignore'), '[no_icon]', '[no_description]',
                                       button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
                     message.actionTriggered.connect(self._openBlenderTrigger)
                     message.show()
@@ -398,44 +393,44 @@ class BLENDReader(MeshReader):
         """Creates message for too complex files."""
 
         Logger.logException('e', '%s is too complex for %s', self._file_extension, self._file_path)
-        message = Message(text=i18n_catalog.i18nc('@info', 'This file is either too complex for {}-extension\nor no reader for this file type was found. \
+        message = Message(text=Blender.catalog.i18nc('@info', 'This file is either too complex for {}-extension\nor no reader for this file type was found. \
                           \n\nPlease change the file extension:'.format(self._file_extension)),
-                          title=i18n_catalog.i18nc('@info:title', '{} is not supported for this file'.format(self._file_extension)))
+                          title=Blender.catalog.i18nc('@info:title', '{} is not supported for this file'.format(self._file_extension)))
         if self._file_extension == 'stl':
-            message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
+            message.addAction('stl', Blender.catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
                               button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
+            message.addAction('obj', Blender.catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('x3d', i18n_catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
+            message.addAction('x3d', Blender.catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
+            message.addAction('ply', Blender.catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
         if self._file_extension == 'obj':
-            message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
+            message.addAction('stl', Blender.catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
+            message.addAction('obj', Blender.catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
                               button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('x3d', i18n_catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
+            message.addAction('x3d', Blender.catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
+            message.addAction('ply', Blender.catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
         if self._file_extension == 'x3d':
-            message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
+            message.addAction('stl', Blender.catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
+            message.addAction('obj', Blender.catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('x3d', i18n_catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
+            message.addAction('x3d', Blender.catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
                               button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
+            message.addAction('ply', Blender.catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
         if self._file_extension == 'ply':
-            message.addAction('stl', i18n_catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
+            message.addAction('stl', Blender.catalog.i18nc('@action:button', 'stl'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('obj', i18n_catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
+            message.addAction('obj', Blender.catalog.i18nc('@action:button', 'obj'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('x3d', i18n_catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
+            message.addAction('x3d', Blender.catalog.i18nc('@action:button', 'x3d'), '[no_icon]', '[no_description]',
                               button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-            message.addAction('ply', i18n_catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
+            message.addAction('ply', Blender.catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
                               button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
         else:
             None
@@ -451,13 +446,13 @@ class BLENDReader(MeshReader):
         """
 
         if action == self._file_extension:
-            fail_message = Message(text=i18n_catalog.i18nc('@info', 'Please choose a different file extension.'),
-                                   title=i18n_catalog.i18nc('@info:title', 'Same file extension chosen'))
+            fail_message = Message(text=Blender.catalog.i18nc('@info', 'Please choose a different file extension.'),
+                                   title=Blender.catalog.i18nc('@info:title', 'Same file extension chosen'))
             fail_message.show()
         else:
             self._file_extension = action
             Application.getInstance().getPreferences().setValue('cura_blender/file_extension', action)
             message.hide()
-            success_message = Message(text=i18n_catalog.i18nc('@info', 'File extension correctly changed.\n\nRetry loading the file.'),
-                                      title=i18n_catalog.i18nc('@info:title', 'Change succesfully'))
+            success_message = Message(text=Blender.catalog.i18nc('@info', 'File extension correctly changed.\n\nRetry loading the file.'),
+                                      title=Blender.catalog.i18nc('@info:title', 'Change succesfully'))
             success_message.show()

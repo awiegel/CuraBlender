@@ -30,7 +30,7 @@ from cura.Scene.CuraSceneNode import CuraSceneNode
 
 
 # The catalog used for showing messages.
-i18n_catalog = i18nCatalog('uranium')
+catalog = i18nCatalog('cura')
 
 
 # Global variables used by our other modules.
@@ -72,10 +72,10 @@ class Blender(Extension):
         self._foreign_file_watcher.fileChanged.connect(self._foreignFileChanged)
 
         # Builds the extension menu.
-        self.setMenuName(i18n_catalog.i18nc('@item:inmenu', 'CuraBlender'))
-        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Open in Blender'), self.openInBlender)
-        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Settings'), self._openSettingsWindow)
-        self.addMenuItem(i18n_catalog.i18nc('@item:inmenu', 'Debug Blenderpath'), self.showBlenderPath)
+        self.setMenuName(catalog.i18nc('@item:inmenu', 'CuraBlender'))
+        self.addMenuItem(catalog.i18nc('@item:inmenu', 'Open in Blender'), self.openInBlender)
+        self.addMenuItem(catalog.i18nc('@item:inmenu', 'Settings'), self._openSettingsWindow)
+        self.addMenuItem(catalog.i18nc('@item:inmenu', 'Debug Blenderpath'), self.showBlenderPath)
 
 
     def _openSettingsWindow(self):
@@ -89,11 +89,11 @@ class Blender(Extension):
     def showBlenderPath(self):
         """Shows the current blender path and gives the option to set a new path."""
 
-        message = Message(text=i18n_catalog.i18nc('@info', Application.getInstance().getPreferences().getValue('cura_blender/blender_path')),
-                          title=i18n_catalog.i18nc('@info:title', 'Currently set path to Blender'))
-        message.addAction('Set new path...', i18n_catalog.i18nc('@action:button', 'Set new path...'), '[no_icon]', '[no_description]',
+        message = Message(text=catalog.i18nc('@info', Application.getInstance().getPreferences().getValue('cura_blender/blender_path')),
+                          title=catalog.i18nc('@info:title', 'Currently set path to Blender'))
+        message.addAction('Set new path...', catalog.i18nc('@action:button', 'Set new path...'), '[no_icon]', '[no_description]',
                           button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-        message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'), '[no_icon]', '[no_description]',
+        message.addAction('Ignore', catalog.i18nc('@action:button', 'Ignore'), '[no_icon]', '[no_description]',
                           button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
         message.actionTriggered.connect(self._setBlenderPathTrigger)
         message.show()
@@ -181,11 +181,11 @@ class Blender(Extension):
                             if not outdated_blender_version:
                                 outdated_blender_version = True
                                 Logger.logException('e', 'Your version of blender is outdated. Blender version 2.80 or higher is required!')
-                                message = Message(text=i18n_catalog.i18nc('@info', 'Please update your blender version.'),
-                                                title=i18n_catalog.i18nc('@info:title', 'Outdated blender version'))
-                                message.addAction('Download Blender', i18n_catalog.i18nc('@action:button', 'Download Blender'), '[no_icon]', '[no_description]',
+                                message = Message(text=catalog.i18nc('@info', 'Please update your blender version.'),
+                                                title=catalog.i18nc('@info:title', 'Outdated blender version'))
+                                message.addAction('Download Blender', catalog.i18nc('@action:button', 'Download Blender'), '[no_icon]', '[no_description]',
                                                 button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-                                message.addAction('Set new Blender path', i18n_catalog.i18nc('@action:button', 'Set new Blender path'), '[no_icon]', '[no_description]',
+                                message.addAction('Set new Blender path', catalog.i18nc('@action:button', 'Set new Blender path'), '[no_icon]', '[no_description]',
                                                 button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
                                 message.actionTriggered.connect(self._downloadBlenderTrigger)
                                 message.show()
@@ -234,8 +234,8 @@ class Blender(Extension):
         :param blender_path: The global path to blender to set it. Here it's either wrong or doesn't exist.
         """
 
-        message = Message(text=i18n_catalog.i18nc('@info', 'Set your blender path manually.'),
-                          title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
+        message = Message(text=catalog.i18nc('@info', 'Set your blender path manually.'),
+                          title=catalog.i18nc('@info:title', 'Blender not found'))
         message.show()
 
         dialog = QFileDialog()
@@ -260,13 +260,13 @@ class Blender(Extension):
             # Gets the selected blender path from file explorer.
             Application.getInstance().getPreferences().setValue('cura_blender/blender_path', ''.join(dialog.selectedFiles()))
             self.verifyBlenderPath()
-            message = Message(text=i18n_catalog.i18nc('@info', Application.getInstance().getPreferences().getValue('cura_blender/blender_path')),
-                              title=i18n_catalog.i18nc('@info:title', 'New Blenderpath set'))
+            message = Message(text=catalog.i18nc('@info', Application.getInstance().getPreferences().getValue('cura_blender/blender_path')),
+                              title=catalog.i18nc('@info:title', 'New Blenderpath set'))
             message.show()
         else:
             message.hide()
-            message = Message(text=i18n_catalog.i18nc('@info', 'No blender path was selected.'),
-                              title=i18n_catalog.i18nc('@info:title', 'Blender not found'))
+            message = Message(text=catalog.i18nc('@info', 'No blender path was selected.'),
+                              title=catalog.i18nc('@info:title', 'Blender not found'))
             message.show()
 
     def _downloadBlenderTrigger(self, message, action):
@@ -296,11 +296,11 @@ class Blender(Extension):
         for selection in Selection.getAllSelectedObjects():
             if selection.callDecoration("isGroup"):
                 is_grouped = True
-                message = Message(text=i18n_catalog.i18nc('@info','Ungroup selected group?'),
-                                  title=i18n_catalog.i18nc('@info:title', 'Only nodes without group are allowed.'))
-                message.addAction('Ungroup', i18n_catalog.i18nc('@action:button', 'Ungroup'), '[no_icon]', '[no_description]',
+                message = Message(text=catalog.i18nc('@info','Ungroup selected group?'),
+                                  title=catalog.i18nc('@info:title', 'Only nodes without group are allowed.'))
+                message.addAction('Ungroup', catalog.i18nc('@action:button', 'Ungroup'), '[no_icon]', '[no_description]',
                                   button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-                message.addAction('Ignore', i18n_catalog.i18nc('@action:button', 'Ignore'), '[no_icon]', '[no_description]',
+                message.addAction('Ignore', catalog.i18nc('@action:button', 'Ignore'), '[no_icon]', '[no_description]',
                                   button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
                 message.actionTriggered.connect(self._ungroupTrigger)
                 message.show()
@@ -316,8 +316,8 @@ class Blender(Extension):
         if action == 'Ungroup':
             Application.getInstance().ungroupSelected()
             message.hide()
-            message = Message(text=i18n_catalog.i18nc('@info','Select a new object to open in blender!'),
-                              title=i18n_catalog.i18nc('@info:title', 'Your objects were ungrouped.'))
+            message = Message(text=catalog.i18nc('@info','Select a new object to open in blender!'),
+                              title=catalog.i18nc('@info:title', 'Your objects were ungrouped.'))
             message.show()
         else:
             message.hide()
@@ -346,8 +346,8 @@ class Blender(Extension):
                 if len(open_files) == 1:
                     self._openBlender(open_files.pop())
                 else:
-                    message = Message(text=i18n_catalog.i18nc('@info','Select Object first.'),
-                                      title=i18n_catalog.i18nc('@info:title', 'Please select the object you want to open.'))
+                    message = Message(text=catalog.i18nc('@info','Select Object first.'),
+                                      title=catalog.i18nc('@info:title', 'Please select the object you want to open.'))
                     message.show()
             # If one object is selected, opens it's file reference (file name).
             elif len(Selection.getAllSelectedObjects()) == 1:
@@ -368,8 +368,8 @@ class Blender(Extension):
                 if len(files) == 1:
                     self._openBlender(file_path)
                 else:
-                    message = Message(text=i18n_catalog.i18nc('@info','Please rethink your selection.'),
-                                      title=i18n_catalog.i18nc('@info:title', 'Select only objects from same file'))
+                    message = Message(text=catalog.i18nc('@info','Please rethink your selection.'),
+                                      title=catalog.i18nc('@info:title', 'Select only objects from same file'))
                     message.show()
 
     def _openBlender(self, file_path):
