@@ -25,7 +25,7 @@ UM.Dialog
     width: minimumWidth
     minimumWidth: 375
     height: minimumHeight
-    minimumHeight: 200
+    minimumHeight: 250
 
     // Main component. Contains functions and smaller components like buttons and checkboxes.
     Item
@@ -61,7 +61,7 @@ UM.Dialog
             id: fileExtension
         }
 
-        // Label above our import type selection.
+        // Label above the import type selection.
         Label
         {
             id: importTypeLabel
@@ -260,11 +260,32 @@ UM.Dialog
             onClicked: UM.Preferences.setValue("cura_blender/show_scale_message", checked)
         }
 
+        // Checkbox for show scale message.
+        Cura.CheckBoxWithTooltip
+        {
+            id: showCloseBlenderInstancesWarning
+            anchors.left: parent.left
+            anchors.top: autoArrangeOnReloadCheckbox.bottom
+            anchors.topMargin: UM.Theme.getSize("default_margin").width
+
+            // The text for this checkbox.
+            text: catalog.i18nc("@action:checkbox","Warn before closing other Blender instances (Caution!)")
+
+            // The tooltip for this checkbox.
+            tooltip: catalog.i18nc("@checkbox:description", "Potential loss of data. Deactivate on own risk.")
+
+            // Calls getShowCloseBlenderInstancesWarning and loads the entry state for show close blender instances warning attribute.
+            checked: UM.Preferences.getValue("cura_blender/warn_before_closing_other_blender_instances")
+
+            // Calls setShowCloseBlenderInstancesWarning and sets the new state for show close blender instances warning attribute.
+            onClicked: UM.Preferences.setValue("cura_blender/warn_before_closing_other_blender_instances", checked)
+        }
+
         // Help button.
         Cura.SecondaryButton
         {
             id: helpButton
-            anchors.left: parent.right
+            anchors.right: parent.right
             anchors.top: parent.top
             height: UM.Theme.getSize("setting_control").height
             iconSource: UM.Theme.getIcon("external_link")
