@@ -45,7 +45,7 @@ class BLENDWriter(MeshWriter):
         success = True
 
         # Checks if path to blender is correct.
-        if Blender.Blender.verifyBlenderPath():
+        if Blender.Blender.verifyBlenderPath(manual=False):
 
             self._plugin_path = Blender.Blender.getPluginPath()
             self._script_path = os.path.join(self._plugin_path, 'BlenderAPI.py')
@@ -78,7 +78,7 @@ class BLENDWriter(MeshWriter):
         for node in nodes:
             for children in node.getAllChildren():
                 # Filters nodes without real meshdata and which doesn't belong to any file.
-                if isinstance(children, CuraSceneNode) and children.getMeshData().getFileName():
+                if isinstance(children, CuraSceneNode) and not children.callDecoration("isGroup") and children.getMeshData().getFileName():
                     file_list.append(children.getMeshData().getFileName())
         return file_list
 

@@ -1,16 +1,14 @@
 # Imports from the python standard library.
 import os
-import json
 import glob
 import time  # Small fix for changes to live_reload during runtime.
 import subprocess
 from subprocess import PIPE
 
 # Imports from QT.
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QInputDialog
 from PyQt5.QtCore import QFileSystemWatcher, QUrl
 from PyQt5.QtGui import QDesktopServices
-
 
 # Imports from Uranium.
 from UM.Platform import Platform
@@ -73,9 +71,9 @@ class Blender(Extension):
 
         # Builds the extension menu.
         self.setMenuName(catalog.i18nc('@item:inmenu', 'CuraBlender'))
-        self.addMenuItem(catalog.i18nc('@item:inmenu', 'Open in Blender'), self.openInBlender)
+        self.addMenuItem(catalog.i18nc('@item:inmenu', 'Open in Blender'), self._setUpFilePathForBlender)
         self.addMenuItem(catalog.i18nc('@item:inmenu', 'Settings'), self._openSettingsWindow)
-        self.addMenuItem(catalog.i18nc('@item:inmenu', 'Debug Blenderpath'), self.showBlenderPath)
+        self.addMenuItem(catalog.i18nc('@item:inmenu', 'Debug Blenderpath'), self._showBlenderPath)
 
 
     def _openSettingsWindow(self):
@@ -86,14 +84,14 @@ class Blender(Extension):
         self._console_window.show()
 
 
-    def showBlenderPath(self):
+    def _showBlenderPath(self):
         """Shows the current blender path and gives the option to set a new path."""
 
         message = Message(text=catalog.i18nc('@info', Application.getInstance().getPreferences().getValue('cura_blender/blender_path')),
                           title=catalog.i18nc('@info:title', 'Currently set path to Blender'))
-        message.addAction('Set new path...', catalog.i18nc('@action:button', 'Set new path...'), '[no_icon]', '[no_description]',
+        message.addAction('FileDialog', catalog.i18nc('@action:button', 'Open File Explorer'), '[no_icon]', '[no_description]',
                           button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
-        message.addAction('Ignore', catalog.i18nc('@action:button', 'Ignore'), '[no_icon]', '[no_description]',
+        message.addAction('InputDialog', catalog.i18nc('@action:button', 'Open Text Field'), '[no_icon]', '[no_description]',
                           button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
         message.actionTriggered.connect(self._setBlenderPathTrigger)
         message.show()
@@ -106,11 +104,13 @@ class Blender(Extension):
         :param action: The pressed button on the message.
         """
 
-        if action == 'Set new path...':
-            message.hide()
+        message.hide()
+        if action == 'FileDialog':
             self._openFileDialog()
+        elif action == 'InputDialog':
+            self._openInputDialog()
         else:
-            message.hide()
+            None
 
 
     def loadAndSetSettings(self):
@@ -133,16 +133,12 @@ class Blender(Extension):
         # Loads and sets the file extension.
         if not self._preferences._findPreference('cura_blender/file_extension'):
             self._preferences.addPreference('cura_blender/file_extension', 'stl')
+        # Loads and sets the 'warn_before_closing_other_blender_instances' setting. !!! Caution !!!
+        if not self._preferences._findPreference('cura_blender/warn_before_closing_other_blender_instances'):
+            self._preferences.addPreference('cura_blender/warn_before_closing_other_blender_instances', True)
         # Loads and sets the path to blender.
         if not self._preferences._findPreference('cura_blender/blender_path'):
             self._preferences.addPreference('cura_blender/blender_path', '')
-
-        # self._preferences.removePreference('cura_blender/live_reload')
-        # self._preferences.removePreference('cura_blender/auto_arrange_on_reload')
-        # self._preferences.removePreference('cura_blender/auto_scale_on_read')
-        # self._preferences.removePreference('cura_blender/show_scale_message')
-        # self._preferences.removePreference('cura_blender/file_extension')
-        # self._preferences.removePreference('cura_blender/blender_path')
 
 
     @classmethod
@@ -157,9 +153,10 @@ class Blender(Extension):
 
 
     @classmethod
-    def verifyBlenderPath(self):
+    def verifyBlenderPath(self, manual = False):
         """Verifies the path to blender.
         
+        :param manual: If path was set manually, does not open file explorer on wrong path.
         :return: The boolean value of the correct blender path.
         """
 
@@ -191,9 +188,15 @@ class Blender(Extension):
                                 message.show()
                         else:
                             None
-                        # Checks if path to blender is finally verified, otherwise sets a new path.
-                        if not verified_blender_path:
-                            self.setBlenderPath()
+                # Checks if path to blender is finally verified.
+                if manual and not verified_blender_path:
+                    message = Message(text=catalog.i18nc('@info', 'Could not verify your path.'),
+                                      title=catalog.i18nc('@info:title', 'Wrong path'))
+                    message.show()
+                elif not verified_blender_path:
+                    self.setBlenderPath()
+                else:
+                    None
         except:
             Logger.logException('e', 'Problems with path to blender!')
         finally:
@@ -213,7 +216,7 @@ class Blender(Extension):
                 temp_blender_path = glob.glob('C:/Program Files/Blender Foundation/**/*.exe')
                 blender_path = temp_blender_path[len(temp_blender_path)-1].replace('\\', '/')
             elif Platform.isOSX():
-                blender_path = '/Applications/Blender.app/Contents/MacOS/blender'
+                blender_path = '/Applications/Blender.app/Contents/MacOS/Blender'
             elif Platform.isLinux():
                 blender_path = '/usr/bin/blender'
             else:
@@ -225,15 +228,13 @@ class Blender(Extension):
             else:
                 # Adds blender path in settings file.
                 Application.getInstance().getPreferences().setValue('cura_blender/blender_path', blender_path)
-                self.verifyBlenderPath()
+                self.verifyBlenderPath(manual=False)
 
     @classmethod
     def _openFileDialog(self):
-        """The user can set the path to blender manually. Gets called when blender isn't found in the expected place.
+        """The user can set the path to blender manually. Gets called when blender isn't found in the expected place."""
 
-        :param blender_path: The global path to blender to set it. Here it's either wrong or doesn't exist.
-        """
-
+        global verified_blender_path
         message = Message(text=catalog.i18nc('@info', 'Set your blender path manually.'),
                           title=catalog.i18nc('@info:title', 'Blender not found'))
         message.show()
@@ -246,7 +247,6 @@ class Blender(Extension):
             dialog.setNameFilters(["Blender (*.exe)"])
         elif Platform.isOSX():
             dialog.setDirectory('/Applications')
-            dialog.setNameFilters(["Blender (*.app)"])
         elif Platform.isLinux():
             dialog.setDirectory('/usr/bin')
         else:
@@ -259,7 +259,8 @@ class Blender(Extension):
             message.hide()
             # Gets the selected blender path from file explorer.
             Application.getInstance().getPreferences().setValue('cura_blender/blender_path', ''.join(dialog.selectedFiles()))
-            self.verifyBlenderPath()
+            verified_blender_path = False
+            self.verifyBlenderPath(manual=True)
             message = Message(text=catalog.i18nc('@info', Application.getInstance().getPreferences().getValue('cura_blender/blender_path')),
                               title=catalog.i18nc('@info:title', 'New Blenderpath set'))
             message.show()
@@ -268,6 +269,16 @@ class Blender(Extension):
             message = Message(text=catalog.i18nc('@info', 'No blender path was selected.'),
                               title=catalog.i18nc('@info:title', 'Blender not found'))
             message.show()
+
+    def _openInputDialog(self):
+        """The user can set the path to blender manually. Gets called when blender isn't found in the expected place."""
+
+        global verified_blender_path
+        text = QInputDialog.getText(QInputDialog(), 'Blender path', 'Enter your path to Blender:')
+        if text[1] and text[0] != '':
+            Application.getInstance().getPreferences().setValue('cura_blender/blender_path', text[0])
+            verified_blender_path = False
+            self.verifyBlenderPath(manual=True)
 
     def _downloadBlenderTrigger(self, message, action):
         """The trigger connected for downloading new blender version.
@@ -323,11 +334,11 @@ class Blender(Extension):
             message.hide()
 
 
-    def openInBlender(self):
-        """Checks if the selection of objects is correct and allowed and calls the actual function to open the file. """
+    def _setUpFilePathForBlender(self):
+        """Checks if the selection of objects is correct and allowed and calls the function to build the command. """
 
         # Checks if path to this plugin and path to blender are correct.
-        Blender.verifyBlenderPath()
+        Blender.verifyBlenderPath(manual=False)
 
         # Only continues if correct path to blender is set.
         if verified_blender_path and not self._checkGrouped():
@@ -344,7 +355,7 @@ class Blender(Extension):
                         open_files.add(file_path)
                 # Opens the objects in blender, if they belong to only one file.
                 if len(open_files) == 1:
-                    self._openBlender(open_files.pop())
+                    self._buildCommandForBlender(open_files.pop())
                 else:
                     message = Message(text=catalog.i18nc('@info','Select Object first.'),
                                       title=catalog.i18nc('@info:title', 'Please select the object you want to open.'))
@@ -355,7 +366,7 @@ class Blender(Extension):
                     file_path = selection.getMeshData().getFileName()
                     if '_curasplit_' in file_path:
                         file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-                    self._openBlender(file_path)
+                    self._buildCommandForBlender(file_path)
             # If multiple objects are selected, checks if they belong to more than one file.
             else:
                 files = set()
@@ -366,14 +377,14 @@ class Blender(Extension):
                     files.add(file_path)
                 # Opens the objects in blender, if they belong to only one file.
                 if len(files) == 1:
-                    self._openBlender(file_path)
+                    self._buildCommandForBlender(file_path)
                 else:
                     message = Message(text=catalog.i18nc('@info','Please rethink your selection.'),
                                       title=catalog.i18nc('@info:title', 'Select only objects from same file'))
                     message.show()
 
-    def _openBlender(self, file_path):
-        """Opens the given file in blender. File must not necessarily be a blender file.
+    def _buildCommandForBlender(self, file_path):
+        """Builds the command to open the given file in blender. File must not necessarily be a blender file.
      
         :param file_path: The path of the file to open in blender.
         """
@@ -389,7 +400,6 @@ class Blender(Extension):
             if '_curasplit_' in file_path:
                 file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
             command = '"{}" "{}"'.format(self._blender_path, file_path)
-            subprocess.Popen(command, shell = True)
         # Procedure for non-blender files.
         elif current_file_extension in self._supported_foreign_extensions:
             execute_list = "bpy.data.objects.remove(bpy.data.objects['Cube']);"
@@ -407,12 +417,64 @@ class Blender(Extension):
             subprocess.run(command, shell = True)
 
             command = '"{}" "{}"'.format(self._blender_path, export_file)
-            subprocess.Popen(command, shell = True)
-            
+
             self._foreign_file_extension = os.path.basename(file_path).rsplit('.', 1)[-1]
             self._foreign_file_watcher.addPath(export_file)
         else:
             None
+
+        self.openInBlender(command)
+
+
+    @classmethod
+    def openInBlender(self, command):
+        """Executes the given command. Asks for closing all other instances of blender.
+
+        !!! Caution !!!
+        Terminates all instances of blender without saving. Potential loss of data.
+
+        :param command: The command to open the file in blender.
+        """
+
+        self._command = command
+
+        # Checks warn before closing other blender instances flag in settings file.
+        if Application.getInstance().getPreferences().getValue('cura_blender/warn_before_closing_other_blender_instances'):
+            message = Message(text=catalog.i18nc('@info','This will close all other instances of blender without saving.\nPotential loss of data.'),
+                            title=catalog.i18nc('@info:title', 'Caution!'))
+            message.addAction('Continue', catalog.i18nc('@action:button', 'Continue'), '[no_icon]', '[no_description]',
+                            button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
+            message.addAction('Ignore', catalog.i18nc('@action:button', "Don't show this message again"), '[no_icon]', '[no_description]',
+                            button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
+            message.actionTriggered.connect(self._closeAllBlenderInstancesTrigger)
+            message.show()
+        else:
+            # Executes the command to open the file in blender.
+            subprocess.Popen(self._command, shell = True)
+
+    @classmethod
+    def _closeAllBlenderInstancesTrigger(self, message, action):
+        """The trigger connected with check grouped function.
+
+        :param message: The opened message to hide with ignore button.
+        :param action: The pressed button on the message.
+        """
+
+        if action == 'Continue':
+            blender_path = Application.getInstance().getPreferences().getValue('cura_blender/blender_path')
+
+            if Platform.isWindows():
+                command = '"taskkill" "/f" "/im" "{}"'.format(os.path.basename(blender_path))
+            else:
+                command = '"pkill" "-f" "{}"'.format(os.path.basename(blender_path))
+            subprocess.call(command, shell = True)
+            # Executes the command to open the file in blender.
+            subprocess.Popen(self._command, shell = True)
+        elif action == 'Ignore':
+            Application.getInstance().getPreferences().setValue('cura_blender/warn_before_closing_other_blender_instances', False)
+        else:
+            None
+        message.hide()
 
 
     def _foreignFileChanged(self, path):

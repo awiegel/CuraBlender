@@ -52,7 +52,7 @@ class BLENDReader(MeshReader):
         nodes = []
 
         # Only continues if correct path to blender is set.
-        if not Blender.Blender.verifyBlenderPath():
+        if not Blender.Blender.verifyBlenderPath(manual=False):
             # Failure message already gets called at other place.
             Logger.logException('e', 'Problems with path to blender!')
         # Checks if file extension for conversion is supported (stl, obj, x3d, ply).
@@ -217,10 +217,11 @@ class BLENDReader(MeshReader):
         :param action: The pressed button on the message.
         """
 
+        message.hide()
+
         if action == 'Open in Blender':
             command = '"{}" "{}"'.format(self._blender_path, self._file_path)
-            subprocess.Popen(command, shell = True)
-        message.hide()
+            Blender.Blender.openInBlender(command)
 
 
     def _convertAndOpenFile(self, file_path, nodes):
