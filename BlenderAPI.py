@@ -1,6 +1,5 @@
 # Imports from the python standard library.
 import sys
-import math
 import os
 
 # Imports from the blender python library.
@@ -40,9 +39,9 @@ def removeDecorators(objects):
     while node < nodes:
         if objects[node].type != "MESH":
             objects.remove(objects[node])
-            node -= 1
             nodes -= 1
-        node += 1
+        else:
+            node += 1
 
 
 def removeInactiveObjects(objects):
@@ -58,9 +57,9 @@ def removeInactiveObjects(objects):
             data = bpy.data.collections[collection].objects[node]
             if not data.visible_get():
                 objects.remove(data)
-                node -= 1
                 nodes -= 1
-            node += 1
+            else:
+                node += 1
 
 
 def linkAndRenameObjects(objects, file_path):
@@ -87,10 +86,10 @@ def findIndexAndRemoveOtherObjects(objects, index):
     while node < nodes:
         if node != index:
             objects.remove(objects[node])
-            node -= 1
             nodes-= 1
             index -= 1
-        node += 1
+        else:
+            node += 1
 
 
 def repositionObjects():
