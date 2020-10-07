@@ -40,7 +40,7 @@ verified_blender_path = False
 outdated_blender_version = False
 
 
-class Blender(Extension):
+class CuraBlender(Extension):
     """An Extension subclass and the main class for CuraBlender plugin."""
 
     def __init__(self):
@@ -79,7 +79,7 @@ class Blender(Extension):
     def _openSettingsWindow(self):
         """Opens the settings."""
 
-        qml_file_path = os.path.join(PluginRegistry.getInstance().getPluginPath(self.getPluginId()), 'BlenderTool.qml')
+        qml_file_path = os.path.join(PluginRegistry.getInstance().getPluginPath(self.getPluginId()), 'CuraBlender.qml')
         self._console_window = Application.getInstance().createQmlComponent(qml_file_path, {'manager': self})
         self._console_window.show()
 
@@ -338,7 +338,7 @@ class Blender(Extension):
         """Checks if the selection of objects is correct and allowed and calls the function to build the command. """
 
         # Checks if path to this plugin and path to blender are correct.
-        Blender.verifyBlenderPath(manual=False)
+        CuraBlender.verifyBlenderPath(manual=False)
 
         # Only continues if correct path to blender is set.
         if verified_blender_path and not self._checkGrouped():

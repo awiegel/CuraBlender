@@ -23,7 +23,7 @@ UM.Dialog
 
     // Setting the dimensions of the dialog window and prohibiting resizing.
     width: minimumWidth
-    minimumWidth: 375
+    minimumWidth: 350
     height: minimumHeight
     minimumHeight: 250
 
@@ -71,7 +71,7 @@ UM.Dialog
             height: UM.Theme.getSize("setting").height
 
             // The actual text.
-            text: catalog.i18nc("@label", "Choose Import Type")
+            text: catalog.i18nc("@label", "Select Import Type")
 
             font: UM.Theme.getFont("medium_bold")
             color: UM.Theme.getColor("text")
@@ -174,6 +174,22 @@ UM.Dialog
 
             // Sets the current import type to 'ply' and unchecks every other box.
             onClicked: UM.Preferences.setValue("cura_blender/file_extension", settings.plyImportType)
+        }
+
+        // CuraBlender logo.
+        UM.RecolorImage
+        {
+            id: logoLabel
+            anchors.left: plyButton.right
+            anchors.leftMargin: UM.Theme.getSize("default_margin").width
+            anchors.top: importTypeLabel.bottom
+
+            // The path to the logo.
+            source: "images/blender_logo.svg"
+
+            width: plyButton.width
+            height: plyButton.height
+            color: UM.Theme.getColor(source)
         }
 
         // Checkbox for live reload.
@@ -286,6 +302,7 @@ UM.Dialog
         {
             id: helpButton
             anchors.right: parent.right
+            anchors.rightMargin: UM.Theme.getSize("default_margin").width
             anchors.top: parent.top
             height: UM.Theme.getSize("setting_control").height
             iconSource: UM.Theme.getIcon("external_link")

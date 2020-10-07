@@ -2,7 +2,7 @@
 from UM.Mesh.MeshWriter import MeshWriter # For the binary mode flag.
 
 # Imports from own package.
-from . import Blender, BLENDReader, BLENDWriter
+from . import CuraBlender, BLENDReader, BLENDWriter
 
 
 def getMetaData():
@@ -13,7 +13,7 @@ def getMetaData():
         'mesh_reader': [
             {
                 'extension': 'blend',
-                'description': Blender.catalog.i18nc('@item:inlistbox', 'BLEND File')
+                'description': CuraBlender.catalog.i18nc('@item:inlistbox', 'BLEND File')
             }
         ],
         'mesh_writer': {
@@ -21,7 +21,7 @@ def getMetaData():
                 {
                     "mode": MeshWriter.OutputMode.BinaryMode,
                     "extension": "blend",
-                    "description": Blender.catalog.i18nc("@item:inlistbox", "BLEND File")
+                    "description": CuraBlender.catalog.i18nc("@item:inlistbox", "BLEND File")
                 }
             ]
         }
@@ -32,7 +32,7 @@ def register(app):
     """Registers the plugin in cura on start."""
 
     return {
-            'extension': Blender.Blender(),
+            'extension': CuraBlender.CuraBlender(),
             'mesh_reader': BLENDReader.BLENDReader(),
             'mesh_writer': BLENDWriter.BLENDWriter()
             }

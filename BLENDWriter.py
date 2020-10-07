@@ -14,7 +14,7 @@ from UM.Application import Application
 from cura.Scene.CuraSceneNode import CuraSceneNode
 
 # Imports from own package.
-from . import Blender
+from . import CuraBlender
 
 
 class BLENDWriter(MeshWriter):
@@ -45,9 +45,9 @@ class BLENDWriter(MeshWriter):
         success = True
 
         # Checks if path to blender is correct.
-        if Blender.Blender.verifyBlenderPath(manual=False):
+        if CuraBlender.CuraBlender.verifyBlenderPath(manual=False):
 
-            self._plugin_path = Blender.Blender.getPluginPath()
+            self._plugin_path = CuraBlender.CuraBlender.getPluginPath()
             self._script_path = os.path.join(self._plugin_path, 'BlenderAPI.py')
 
             file_list = self._createFileList(nodes)
