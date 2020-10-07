@@ -449,8 +449,22 @@ class CuraBlender(Extension):
             message.actionTriggered.connect(self._closeAllBlenderInstancesTrigger)
             message.show()
         else:
-            # Executes the command to open the file in blender.
-            subprocess.Popen(self._command, shell = True)
+            self._closeAllBlenderInstances()
+
+    @classmethod
+    def _closeAllBlenderInstances(self):
+        """Closes all instances of blender to maintain an unique instance."""
+
+        blender_path = Application.getInstance().getPreferences().getValue('cura_blender/blender_path')
+
+        if Platform.isWindows():
+            command = '"taskkill" "/f" "/im" "{}"'.format(os.path.basename(blender_path))
+        else:
+            command = '"pkill" "-f" "{}"'.format(os.path.basename(blender_path))
+        subprocess.call(command, shell = True)
+
+        # Executes the command to open the file in blender.
+        subprocess.Popen(self._command, shell = True)
 
     @classmethod
     def _closeAllBlenderInstancesTrigger(self, message, action):
@@ -461,17 +475,10 @@ class CuraBlender(Extension):
         """
 
         if action == 'Continue':
-            blender_path = Application.getInstance().getPreferences().getValue('cura_blender/blender_path')
-
-            if Platform.isWindows():
-                command = '"taskkill" "/f" "/im" "{}"'.format(os.path.basename(blender_path))
-            else:
-                command = '"pkill" "-f" "{}"'.format(os.path.basename(blender_path))
-            subprocess.call(command, shell = True)
-            # Executes the command to open the file in blender.
-            subprocess.Popen(self._command, shell = True)
+            self._closeAllBlenderInstances()
         elif action == 'Ignore':
             Application.getInstance().getPreferences().setValue('cura_blender/warn_before_closing_other_blender_instances', False)
+            self._closeAllBlenderInstances()
         else:
             None
         message.hide()
