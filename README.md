@@ -1,4 +1,4 @@
-# CuraBlender Manual <img align="right" width="10%" height="10%" src="Documentation/images/blender_logo.png" />
+# CuraBlender Manual <img align="right" width="10%" height="10%" src="Documentation/images/CuraBlender_logo.png" />
 This is a plugin for ultimaker cura which integrates blender for a much better workflow.
 
 <br/>
@@ -6,15 +6,18 @@ This is a plugin for ultimaker cura which integrates blender for a much better w
 ## Table of contents
 - [1. Trailer](#1-Trailer)
 - [2. Installation](#2-Installation)
-- [3. Functionality / Usage](#3-Functionality-/-Usage)
+- [3. Functionality / Usage](#3-Functionality--Usage)
+- [4. Suggestions / Bug reports](#4-Suggestions--Bug-reports)
 
-<br/> <br/>
+<br/> <br/> <br/>
 
 ## 1. Trailer
 
 [![CuraBlender](https://img.youtube.com/vi/0cdlJtuJI70/0.jpg)](https://www.youtube.com/watch?v=0cdlJtuJI70)
 
-<br/> <br/>
+**Note:** This plugin changed from tool to extension. It's now accessible through the extensions tab.
+
+<div class="page"/> <br/> <br/> <br/>
 
 ## 2. Installation
 To install this plugin, simply drag this folder unzipped into your plugins folder.
@@ -22,7 +25,7 @@ To install this plugin, simply drag this folder unzipped into your plugins folde
 The following tool is needed for this plugin to work:
 * **Blender** (https://www.blender.org/download/) (**2.80 or higher** is required)
 
-<div class="page"/> <br/> <br/>
+<br/> <br/> <br/>
 
 ## 3. Functionality / Usage
 **Default functionality:**
@@ -38,34 +41,37 @@ The user can also load a BLEND file with multiple objects and delete some. Only 
 Foreign files (stl, obj, x3d, ply) can also be written to a BLEND file.
 Any combination of those objects/files will work.
 
-<br/> <br/>
+<div class="page"/> <br/>
 
-**Functionality accessed through the toolbar:** \
-<img align="right" width="60%" height="60%" src="Documentation/images/blender_interface.PNG" />
-<img align="right" width="10%" height="10%" src="Documentation/images/blender_logo.svg" />
+**Functionality accessed through the extensions tab:**  
 
-To use the tool of this plugin, load an object from a file and click on it. A toolbar on the left side of the window will appear.
-Click on the logo of this plugin. \
+To use the extension of this plugin, click on the extensions tab and search for CuraBlender. \
 There are multiple options available:
 * **Open in Blender:**
 Opens the currently selected object in blender and also creates a file watcher for this file.
 If the object inside blender will be changed and saved, cura automatically updates the corresponding object in cura.
-* **Select Import Type:**
-Blender files get converted into another file type on reading/writing. Select one of four types for this (stl, obj, x3d, ply).
+Groups cannot be opened due to how file reference works.
 
-<div class="page"/>
+* **Settings:**
+    * **Select Import Type:** Blender files get converted into another file type on reading/writing. Select one of four types for this (stl, obj, x3d, ply).
+    * **Help:** Forwards the user to the official [GitHub](https://github.com/awiegel/CuraBlender) page of this plugin.
+    * **Functions that can be turned on/off:**
+        <img align="right" width="50%" height="50%" src="Documentation/images/CuraBlender_interface.PNG" />
+        * **Live Reload:** Changing a loaded object in blender and saving it, automatically reloads the object inside cura.
+        * **Auto arrange on reload:** After an object gets reloaded through the 'Live Reload' function, auto arranges the complete build plate.
+        * **Auto scale on read:** If object is either too big or too small, scales it down/up automatically to fit the build plate.
+        * **Show scale message:** Shows or hides the auto scale message.
+        * **Warn before closing other Blender instances (Caution!):** Shows or hides the message for closing other blender instances when opening a new one. Potential loss of data. Deactivate on own risk.
 
-**Functions that can be turned on/off:**
-* **Live Reload:** Changing a loaded object in blender and saving it, automatically reloads the object inside cura.
-* **Auto arrange on reload:** After an object gets reloaded through the 'Live Reload' function, auto arranges the complete build plate.
-* **Auto scale on read:** If object is either too big or too small, scales it down/up automatically to fit the build plate.
-* **Show scale message:** Shows or hides the auto scale message.
+* **Debug Blenderpath:** Allows the user to set the path to blender manually. This can be used to select different versions of blender or debug the path on problems.
 
-Inside the plugins folder `plugins/Blender` the user can find a settings file `blender_settings.json`. 
-Changing settings inside the toolbar will permanently save those settings inside the settings file.
+All settings are saved inside a cura specific folder with the preferences module from Uranium.
+Changing settings inside the settings window will permanently save those settings inside the settings file.
 The next time the user starts cura, those settings will be loaded.
 
-<img align="right" width="40%" height="40%" src="Documentation/images/blender_settings.PNG" />
+<br/> <br/> <br/>
 
-**Information:** If the path where Ultimaker Cura is installed is protected, the user either needs to give this settings file write permission or needs to start cura with administrator privileges. Another option is to modify the settings file manually. \
-**Quick tip:** Execute cura as administrator on the first time using this plugin and set the desired settings.
+## 4. Suggestions / Bug reports
+If you encounter any problems while using this plugin or have any suggestions or feedback, \
+feel free to contact me. \
+Read the [Known challenges](Documentation/README.md/#5-Known-challenges) section in the [documentation](Documentation/README.md) first for a listing of all problems and suggestions.
