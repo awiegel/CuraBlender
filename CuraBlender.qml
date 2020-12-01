@@ -185,7 +185,7 @@ UM.Dialog
             anchors.top: importTypeLabel.bottom
 
             // The path to the logo.
-            source: "images/blender_logo.svg"
+            source: "images/CuraBlender_logo.svg"
 
             width: plyButton.width
             height: plyButton.height
