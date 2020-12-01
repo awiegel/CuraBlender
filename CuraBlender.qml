@@ -3,10 +3,10 @@ import QtQuick 2.10
 import QtQuick.Controls 1.4
 
 // Imports the Uranium GUI elements, which are themed for Cura.
-import UM 1.5 as UM
+import UM 1.4 as UM
 
 // Imports the Cura GUI elements.
-import Cura 1.6 as Cura
+import Cura 1.1 as Cura
 
 
 // Dialog from Uranium.

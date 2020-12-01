@@ -67,7 +67,8 @@ A license file.
 
 ## 2. Potential problems
 **Ultimaker Cura Version** \
-This plugin was developed and tested on **Ultimaker Cura 4.6 and 4.7**. It should also work for other versions of cura, but is not guaranteed.
+This plugin was developed and successfully tested on versions for **Ultimaker Cura from 4.0 up to 4.8**. \
+It should also work for future versions, but is not guaranteed.
 
 <br/>
 
@@ -75,7 +76,7 @@ This plugin was developed and tested on **Ultimaker Cura 4.6 and 4.7**. It shoul
 Because this plugin closely works with Blender and it's python API, there could occur problems with new Blender updates. Nearly every update of blender changes commands of it's python API and could potentially need some tweaks. \
 This is especially true between blender 2.7x and blender 2.8x where the concept of collections was introduced. \
 Therefore this plugin doesn't work for blender version 2.79 and below. \
-Successfully tested on **blender 2.80, blender 2.81, blender 2.82, blender 2.83, blender 2.90**.
+Successfully tested on **blender 2.80, blender 2.81, blender 2.82, blender 2.83, blender 2.90, blender 2.91**.
 
 <br/>
 
