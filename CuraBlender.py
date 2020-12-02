@@ -553,21 +553,24 @@ class CuraBlender(Extension):
         for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
             if isinstance(node, CuraSceneNode) and node.getMeshData():
                 file_path = node.getMeshData().getFileName()
-                # Gets the original file name of _curasplit_ objects.
-                if '_curasplit_' in file_path:
-                    file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
-
-                # Checks if foreign file gets reloaded.
-                if '_cura_temp' in job.getFileName():
-                    temp_path = '{}/{}.{}'.format(os.path.dirname(job.getFileName()),                          \
-                                                  os.path.basename(job.getFileName()).rsplit('.', 1)[0][:-10], \
-                                                  os.path.basename(job.getFileName()).rsplit('.', 1)[-1]).replace('//', '/')
-                    if file_path == temp_path:
-                        job._nodes.append(node)
-                        temp_flag = True
-                else:
-                    if file_path == job.getFileName():
-                        job._nodes.append(node)
+                try:
+                    # Gets the original file name of _curasplit_ objects.
+                    if '_curasplit_' in file_path:
+                        file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
+                    
+                    # Checks if foreign file gets reloaded.
+                    if '_cura_temp' in job.getFileName():
+                        temp_path = '{}/{}.{}'.format(os.path.dirname(job.getFileName()),                          \
+                                                    os.path.basename(job.getFileName()).rsplit('.', 1)[0][:-10], \
+                                                    os.path.basename(job.getFileName()).rsplit('.', 1)[-1]).replace('//', '/')
+                        if file_path == temp_path:
+                            job._nodes.append(node)
+                            temp_flag = True
+                    else:
+                        if file_path == job.getFileName():
+                            job._nodes.append(node)
+                except TypeError:
+                    Logger.logException('e', 'Cannot find file path to object!')
 
         # Important for reloading blender files with multiple objects. Gets the correctly changed object by it's index.
         job_result = job.getResult()
