@@ -189,7 +189,7 @@ UM.Dialog
 
             width: plyButton.width
             height: plyButton.height
-            color: UM.Theme.getColor(source)
+            color: UM.Theme.getColor("source")
         }
 
         // Checkbox for live reload.
