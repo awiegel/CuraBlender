@@ -21,6 +21,7 @@ def getMetaData():
                 {
                     "mode": MeshWriter.OutputMode.BinaryMode,
                     "extension": "blend",
+                    "mime_type": "application/x-blender",
                     "description": CuraBlender.catalog.i18nc("@item:inlistbox", "BLEND File")
                 }
             ]
