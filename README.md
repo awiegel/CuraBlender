@@ -20,7 +20,7 @@ This is a plugin for ultimaker cura which integrates blender for a much better w
 <div class="page"/> <br/> <br/> <br/>
 
 ## 2. Installation
-To install this plugin, simply drag this folder unzipped into your plugins folder.
+To install this plugin, simply download it from the [Ultimaker Marketplace](https://marketplace.ultimaker.com/app/cura/plugins/awiegel/CuraBlender).
 
 The following tool is needed for this plugin to work:
 * **Blender** (https://www.blender.org/download/) (**2.80 or higher** is required)
