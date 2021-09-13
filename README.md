@@ -56,7 +56,7 @@ Groups cannot be opened due to how file reference works.
     * **Select Import Type:** Blender files get converted into another file type on reading/writing. Select one of four types for this (stl, obj, x3d, ply).
     * **Help:** Forwards the user to the official [GitHub](https://github.com/awiegel/CuraBlender) page of this plugin.
     * **Functions that can be turned on/off:**
-        <img align="right" width="50%" height="50%" src="Documentation/images/CuraBlender_interface.PNG" />
+        <img align="right" width="50%" height="50%" src="Documentation/images/CuraBlender_interface.png" />
         * **Live Reload:** Changing a loaded object in blender and saving it, automatically reloads the object inside cura.
         * **Auto arrange on reload:** After an object gets reloaded through the 'Live Reload' function, auto arranges the complete build plate.
         * **Auto scale on read:** If object is either too big or too small, scales it down/up automatically to fit the build plate.
