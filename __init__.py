@@ -2,7 +2,7 @@
 from UM.Mesh.MeshWriter import MeshWriter # For the binary mode flag.
 
 # Imports from own package.
-from . import CuraBlender, BLENDReader, BLENDWriter
+from CuraBlender import CuraBlender, BLENDReader, BLENDWriter
 
 
 def getMetaData():
@@ -13,6 +13,7 @@ def getMetaData():
         'mesh_reader': [
             {
                 'extension': 'blend',
+                "mime_type": "application/x-blender",
                 'description': CuraBlender.catalog.i18nc('@item:inlistbox', 'BLEND File')
             }
         ],

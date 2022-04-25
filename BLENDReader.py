@@ -17,10 +17,14 @@ from UM.Math.Vector import Vector
 from cura.Scene.CuraSceneNode import CuraSceneNode
 
 # Imports from own package.
-from . import CuraBlender
+from CuraBlender import CuraBlender
+from CuraBlender.DeprecatedVersionCheck import DEPRECATED_VERSION
 
 if Platform.isWindows():
-    from PyQt5.QtCore import QEventLoop  # Windows fix for using file watcher on removable devices.
+    if not DEPRECATED_VERSION:
+        from PyQt6.QtCore import QEventLoop  # Windows fix for using file watcher on removable devices.
+    else:
+        from PyQt5.QtCore import QEventLoop  # Windows fix for using file watcher on removable devices.
 
 
 class BLENDReader(MeshReader):

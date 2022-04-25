@@ -1,12 +1,12 @@
 // Imports the standard GUI elements from QTQuick.
-import QtQuick 6.0
-import QtQuick.Controls 6.0
+import QtQuick 2.10
+import QtQuick.Controls 1.4
 
 // Imports the Uranium GUI elements, which are themed for Cura.
-import UM 1.6 as UM
+import UM 1.4 as UM
 
 // Imports the Cura GUI elements.
-import Cura 1.7 as Cura
+import Cura 1.1 as Cura
 
 
 // Dialog from Uranium.
@@ -44,7 +44,6 @@ UM.Dialog
         property var currentImportType: UM.Preferences.getValue("cura_blender/file_extension")
 
         // Updates the view every time the currentImportType changes.
-        // Only one file extension may be active at the same time.
         onCurrentImportTypeChanged:
         {
             var type = currentImportType
@@ -54,6 +53,12 @@ UM.Dialog
             objButton.checked = type === objImportType
             x3dButton.checked = type === x3dImportType
             plyButton.checked = type === plyImportType
+        }
+
+        // Only one file extension may be active at the same time.
+        ExclusiveGroup
+        {
+            id: fileExtension
         }
 
         // Label above the import type selection.
@@ -72,9 +77,6 @@ UM.Dialog
             color: UM.Theme.getColor("text")
         }
 
-        // Size of the import type image buttons
-        property int buttonSize: Math.round(UM.Theme.getSize("button").width * 0.75)
-
         // Sets import type to 'stl' button.
         Button
         {
@@ -82,16 +84,16 @@ UM.Dialog
 
             anchors.left: parent.left
             anchors.top: importTypeLabel.bottom
+            style: UM.Theme.styles.tool_button
             property bool needBorder: true
             checkable: true
-            autoExclusive: true
-            flat: true
+            exclusiveGroup: fileExtension
 
             // The path to the icon.
-            icon.source: "images/stl_icon.svg"
-            icon.width: settings.buttonSize
-            icon.height: settings.buttonSize
+            iconSource: "images/stl_icon.svg"
 
+            // The text when holding the mouse over the icon.
+            text: catalog.i18nc("@action:button", ".stl")
             // Otherwise the text when holding the mouse over the icon would hide under the other icons.
             z: 4
 
@@ -107,16 +109,16 @@ UM.Dialog
             anchors.left: stlButton.right
             anchors.leftMargin: UM.Theme.getSize("default_margin").width
             anchors.top: importTypeLabel.bottom
+            style: UM.Theme.styles.tool_button
             property bool needBorder: true
             checkable: true
-            autoExclusive: true
-            flat: true
+            exclusiveGroup: fileExtension
 
             // The path to the icon.
-            icon.source: "images/obj_icon.svg"
-            icon.width: settings.buttonSize
-            icon.height: settings.buttonSize
-
+            iconSource: "images/obj_icon.svg"
+            
+            // The text when holding the mouse over the icon.
+            text: catalog.i18nc("@action:button", ".obj")
             // Otherwise the text when holding the mouse over the icon would hide under the other icons.
             z:3
 
@@ -132,16 +134,16 @@ UM.Dialog
             anchors.left: objButton.right
             anchors.leftMargin: UM.Theme.getSize("default_margin").width
             anchors.top: importTypeLabel.bottom
+            style: UM.Theme.styles.tool_button
             property bool needBorder: true
             checkable: true
-            autoExclusive: true
-            flat: true
+            exclusiveGroup: fileExtension
 
             // The path to the icon.
-            icon.source: "images/x3d_icon.svg"
-            icon.width: settings.buttonSize
-            icon.height: settings.buttonSize
+            iconSource: "images/x3d_icon.svg"
 
+            // The text when holding the mouse over the icon.
+            text: catalog.i18nc("@action:button", ".x3d")
             // Otherwise the text when holding the mouse over the icon would hide under the other icons.
             z: 2
 
@@ -157,16 +159,16 @@ UM.Dialog
             anchors.left: x3dButton.right
             anchors.leftMargin: UM.Theme.getSize("default_margin").width
             anchors.top: importTypeLabel.bottom
+            style: UM.Theme.styles.tool_button
             property bool needBorder: true
             checkable: true
-            autoExclusive: true
-            flat: true
+            exclusiveGroup: fileExtension
 
             // The path to the icon.
-            icon.source: "images/ply_icon.svg"
-            icon.width: settings.buttonSize
-            icon.height: settings.buttonSize
-
+            iconSource: "images/ply_icon.svg"
+            
+            // The text when holding the mouse over the icon.
+            text: catalog.i18nc("@action:button", ".ply")
             // Otherwise the text when holding the mouse over the icon would hide under the other icons.
             z: 1
 
@@ -175,22 +177,23 @@ UM.Dialog
         }
 
         // CuraBlender logo.
-        Image
+        UM.RecolorImage
         {
             id: logoLabel
             anchors.left: plyButton.right
-            anchors.leftMargin: UM.Theme.getSize("default_margin").width * 3
+            anchors.leftMargin: UM.Theme.getSize("default_margin").width
             anchors.top: importTypeLabel.bottom
 
             // The path to the logo.
             source: "images/CuraBlender_logo.svg"
 
-            sourceSize.width: settings.buttonSize * 1.5
-            sourceSize.height: settings.buttonSize * 1.5
+            width: plyButton.width
+            height: plyButton.height
+            color: UM.Theme.getColor("source")
         }
 
         // Checkbox for live reload.
-        UM.CheckBox
+        Cura.CheckBoxWithTooltip
         {
             id: liveReloadCheckbox
             anchors.left: parent.left
@@ -211,7 +214,7 @@ UM.Dialog
         }
 
         // Checkbox for auto arrange on reload.
-        UM.CheckBox
+        Cura.CheckBoxWithTooltip
         {
             id: autoArrangeOnReloadCheckbox
             anchors.left: parent.left
@@ -232,7 +235,7 @@ UM.Dialog
         }
 
         // Checkbox for auto scale on read.
-        UM.CheckBox
+        Cura.CheckBoxWithTooltip
         {
             id: autoScaleOnReadCheckbox
             anchors.left: liveReloadCheckbox.right
@@ -253,7 +256,7 @@ UM.Dialog
         }
 
         // Checkbox for show scale message.
-        UM.CheckBox
+        Cura.CheckBoxWithTooltip
         {
             id: showScaleMessageCheckbox
             anchors.left: autoArrangeOnReloadCheckbox.right
@@ -274,7 +277,7 @@ UM.Dialog
         }
 
         // Checkbox for show scale message.
-        UM.CheckBox
+        Cura.CheckBoxWithTooltip
         {
             id: showCloseBlenderInstancesWarning
             anchors.left: parent.left
@@ -302,7 +305,7 @@ UM.Dialog
             anchors.rightMargin: UM.Theme.getSize("default_margin").width
             anchors.top: parent.top
             height: UM.Theme.getSize("setting_control").height
-            iconSource: UM.Theme.getIcon("LinkExternal")
+            iconSource: UM.Theme.getIcon("external_link")
 
             // The graphical representation of this object inside cura.
             text: catalog.i18nc("@action:button", "Help")

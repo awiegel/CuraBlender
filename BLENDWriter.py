@@ -2,9 +2,6 @@
 import os
 import subprocess
 
-# Imports from QT.
-from PyQt5.QtCore import QFileSystemWatcher
-
 # Imports from Uranium.
 from UM.Mesh.MeshWriter import MeshWriter
 from UM.Logger import Logger
@@ -14,7 +11,14 @@ from UM.Application import Application
 from cura.Scene.CuraSceneNode import CuraSceneNode
 
 # Imports from own package.
-from . import CuraBlender
+from CuraBlender import CuraBlender
+from CuraBlender.DeprecatedVersionCheck import DEPRECATED_VERSION
+
+# Imports from QT.
+if not DEPRECATED_VERSION:
+    from PyQt6.QtCore import QFileSystemWatcher
+else:
+    from PyQt5.QtCore import QFileSystemWatcher
 
 
 class BLENDWriter(MeshWriter):

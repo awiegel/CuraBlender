@@ -5,10 +5,18 @@ import time  # Small fix for changes to live_reload during runtime.
 import subprocess
 from subprocess import PIPE
 
+# Imports from own package.
+from CuraBlender.DeprecatedVersionCheck import DEPRECATED_VERSION
+
 # Imports from QT.
-from PyQt5.QtWidgets import QFileDialog, QInputDialog
-from PyQt5.QtCore import QFileSystemWatcher, QUrl
-from PyQt5.QtGui import QDesktopServices
+if not DEPRECATED_VERSION:
+    from PyQt6.QtWidgets import QFileDialog, QInputDialog
+    from PyQt6.QtCore import QFileSystemWatcher, QUrl
+    from PyQt6.QtGui import QDesktopServices
+else:
+    from PyQt5.QtWidgets import QFileDialog, QInputDialog
+    from PyQt5.QtCore import QFileSystemWatcher, QUrl
+    from PyQt5.QtGui import QDesktopServices
 
 # Imports from Uranium.
 from UM.Platform import Platform
@@ -79,7 +87,11 @@ class CuraBlender(Extension):
     def _openSettingsWindow(self):
         """Opens the settings."""
 
-        qml_file_path = os.path.join(PluginRegistry.getInstance().getPluginPath(self.getPluginId()), 'CuraBlender.qml')
+        if not DEPRECATED_VERSION:
+            qml_file = 'CuraBlender.qml'
+        else:
+            qml_file = 'CuraBlenderDeprecated.qml'
+        qml_file_path = os.path.join(PluginRegistry.getInstance().getPluginPath(self.getPluginId()), qml_file)
         self._console_window = Application.getInstance().createQmlComponent(qml_file_path, {'manager': self})
         self._console_window.show()
 
@@ -240,7 +252,6 @@ class CuraBlender(Extension):
         message.show()
 
         dialog = QFileDialog()
-        dialog.setAcceptMode(QFileDialog.AcceptOpen)
         # Supports multi-platform
         if Platform.isWindows():
             dialog.setDirectory('C:/Program Files')
@@ -252,10 +263,19 @@ class CuraBlender(Extension):
         else:
             dialog.setDirectory('')
 
-        dialog.setFileMode(QFileDialog.ExistingFile)
-        dialog.setViewMode(QFileDialog.Detail)
+        if not DEPRECATED_VERSION:
+            dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptOpen)
+            dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+            dialog.setViewMode(QFileDialog.ViewMode.Detail)
+            exec_command = dialog.exec
+        else:
+            dialog.setAcceptMode(QFileDialog.AcceptOpen)
+            dialog.setFileMode(QFileDialog.ExistingFile)
+            dialog.setViewMode(QFileDialog.Detail)
+            exec_command = dialog.exec_
+
         # Opens the file explorer and checks if file is selected.
-        if dialog.exec_():
+        if exec_command():
             message.hide()
             # Gets the selected blender path from file explorer.
             Application.getInstance().getPreferences().setValue('cura_blender/blender_path', ''.join(dialog.selectedFiles()))

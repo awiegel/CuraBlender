@@ -1,8 +1,8 @@
 {
     "name": "CuraBlender",
     "author": "Alexander Wiegel",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "Provides support for reading/writing BLEND files. Adds further functionality, for example live mesh reloading.",
-    "supported_sdk_versions": ["6.0.0","6.1.0","6.2.0","6.3.0","7.0.0","7.1.0","7.2.0","7.3.0","7.4.0"],
+    "supported_sdk_versions": ["6.0.0","6.1.0","6.2.0","6.3.0","7.0.0","7.1.0","7.2.0","7.3.0","7.4.0","7.5.0","7.6.0","7.7.0","7.8.0","7.9.0","8.0.0"],
     "i18n-catalog": "cura"
 }
