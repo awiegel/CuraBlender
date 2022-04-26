@@ -1,3 +1,5 @@
+"""Initialization of the CuraBlender plugin."""
+
 # Imports from Uranium.
 from UM.Mesh.MeshWriter import MeshWriter # For the binary mode flag.
 

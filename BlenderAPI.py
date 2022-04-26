@@ -1,3 +1,5 @@
+"""Interface to Blender."""
+
 # Imports from the python standard library.
 import sys
 import os
@@ -6,7 +8,7 @@ import os
 import bpy
 
 
-def removeScene():
+def remove_scene():
     """Removes the entire scene."""
 
     node = 0
@@ -16,7 +18,7 @@ def removeScene():
         objects -= 1
 
 
-def loadLibrary(file_path):
+def load_library(file_path):
     """Loads the given .blend file as a library.
 
     :param file_path: The path of the .blend file.
@@ -26,9 +28,9 @@ def loadLibrary(file_path):
     with bpy.data.libraries.load(file_path) as (src, dst):
         dst.objects = src.objects
     return dst.objects
-    
 
-def removeDecorators(objects):
+
+def remove_decorators(objects):
     """Removes all decorators (Camera, Light, ...).
 
     :param objects: A list of objects.
@@ -44,13 +46,13 @@ def removeDecorators(objects):
             node += 1
 
 
-def removeInactiveObjects(objects):
+def remove_inactive_objects(objects):
     """Removes all inactive objects (hide or exclude from viewport).
 
     :param objects: A list of objects.
     """
 
-    for collection in range(len(bpy.data.collections)):
+    for collection, _ in enumerate(bpy.data.collections):
         node = 0
         nodes = len(bpy.data.collections[collection].objects)
         while node < nodes:
@@ -62,19 +64,19 @@ def removeInactiveObjects(objects):
                 node += 1
 
 
-def linkAndRenameObjects(objects, file_path):
+def link_and_rename_objects(objects, file_path):
     """Renames and links all objects to the scene.
 
     :param objects: A list of objects.
     :param file_path: The file path for renaming purpose. Used in 'Write' mode.
     """
 
-    for node in range(len(objects)):
+    for node, _ in enumerate(objects):
         objects[node].name = '{}_{}_NEW'.format(os.path.basename(file_path).rsplit('.', 1)[0], os.path.basename(file_path).rsplit('.', 1)[-1])
         bpy.context.collection.objects.link(objects[node])
 
 
-def findIndexAndRemoveOtherObjects(objects, index):
+def find_index_and_remove_other_objects(objects, index):
     """Finds the object with the given index and removes all other objects from the scene.
 
     :param objects: A list of objects.
@@ -92,16 +94,16 @@ def findIndexAndRemoveOtherObjects(objects, index):
             node += 1
 
 
-def repositionObjects():
+def reposition_objects():
     """Repositions all objects in the blender file along the x-axis. Used in 'Write' mode."""
 
     # Calculates the average distance between nodes.
     distance = 0
-    for node in range(len(bpy.context.collection.objects)):
+    for node, _ in enumerate(bpy.context.collection.objects):
         distance += bpy.context.collection.objects[node].dimensions[0]
     distance /= 10
 
-    for node in range(len(bpy.context.collection.objects)):
+    for node, _ in enumerate(bpy.context.collection.objects):
         # Positions first node.
         if node == 0:
             bpy.context.collection.objects[node].location[0] = 0
@@ -123,46 +125,46 @@ def main():
 
     # Program for counting nodes inside a file.
     if program == 'Count nodes':
-        removeInactiveObjects(bpy.data.objects)
+        remove_inactive_objects(bpy.data.objects)
         nodes = 0
-        for node in range(len(bpy.data.objects)):
+        for node, _ in enumerate(bpy.data.objects):
             if bpy.data.objects[node].type == "MESH":
                 nodes += 1
         print(nodes)
 
     # Program for loading files with a single node.
     elif program == 'Single node':
-        removeDecorators(bpy.data.objects)
-        removeInactiveObjects(bpy.data.objects)
+        remove_decorators(bpy.data.objects)
+        remove_inactive_objects(bpy.data.objects)
         exec(sys.argv[-2])
 
     # Program for loading files with multiple nodes.
     elif program == 'Multiple nodes':
         index = int(sys.argv[-2])
 
-        removeDecorators(bpy.data.objects)
-        removeInactiveObjects(bpy.data.objects)
+        remove_decorators(bpy.data.objects)
+        remove_inactive_objects(bpy.data.objects)
 
-        findIndexAndRemoveOtherObjects(bpy.data.objects, index)
+        find_index_and_remove_other_objects(bpy.data.objects, index)
 
         exec(sys.argv[-3])
 
     # Program for preparing the 'Write' step.
     elif program == 'Write prepare':
-        removeDecorators(bpy.data.objects)
-        removeInactiveObjects(bpy.data.objects)
+        remove_decorators(bpy.data.objects)
+        remove_inactive_objects(bpy.data.objects)
         bpy.ops.wm.save_as_mainfile(filepath = '{}'.format(sys.argv[-2]))
 
     # Program for creating a file.
     elif program == 'Write':
-        removeScene()
+        remove_scene()
 
         blender_files = sys.argv[-2]
         blender_files = blender_files.split(';')
         # Processes blender files.
         for file_path in list(filter(None, blender_files)):
-            objects = loadLibrary(file_path)
-            linkAndRenameObjects(objects, file_path)
+            objects = load_library(file_path)
+            link_and_rename_objects(objects, file_path)
             os.remove(file_path)
 
         execute_list = sys.argv[-3]
@@ -176,17 +178,15 @@ def main():
                     node.name = '{}_{}_NEW'.format(file_name.rsplit('.', 1)[0], file_name.rsplit('.', 1)[-1])
 
         # Repositions all objects.
-        repositionObjects()
+        reposition_objects()
 
         # Saves the file on given filepath.
         bpy.ops.wm.save_as_mainfile(filepath = '{}'.format(sys.argv[-4]))
 
     # Wrong program call.
     else:
-        None
+        pass
 
 
 if __name__ == "__main__":
-    """Main entry point that calls the program."""
-
     main()

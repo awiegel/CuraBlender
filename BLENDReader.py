@@ -1,8 +1,9 @@
+"""Meshreader for .blend files."""
+
 # Imports from the python standard library.
 import os
 import random
 import subprocess
-from subprocess import PIPE
 
 # Imports from Uranium.
 from UM.Mesh.MeshReader import MeshReader
@@ -42,6 +43,14 @@ class BLENDReader(MeshReader):
         self._supported_extensions = ['.blend']
         self._supported_foreign_extensions = ['stl', 'obj', 'x3d', 'ply']
 
+        self._file_extension = None
+        self._curasplit = None
+        self._check = None
+        self._file_path = None
+        self._plugin_path = None
+        self._script_path = None
+        self._blender_path = None
+
 
     def read(self, file_path):
         """Main entry point for reading the file.
@@ -56,7 +65,7 @@ class BLENDReader(MeshReader):
         nodes = []
 
         # Only continues if correct path to blender is set.
-        if not CuraBlender.CuraBlender.verifyBlenderPath(manual=False):
+        if not CuraBlender.CuraBlender.verify_blender_path(manual=False):
             # Failure message already gets called at other place.
             Logger.logException('e', 'Problems with path to blender!')
         # Checks if file extension for conversion is supported (stl, obj, x3d, ply).
@@ -71,7 +80,7 @@ class BLENDReader(MeshReader):
             self._check = False
             self._file_path = file_path
 
-            temp_path = self._convertAndOpenFile(file_path, nodes)
+            temp_path = self._convert_and_open_file(file_path, nodes)
 
             # Checks if file does not contain any objects.
             if temp_path == 'no_object':
@@ -87,10 +96,10 @@ class BLENDReader(MeshReader):
                 message.show()
             # Checks if the file is too complex for aimed file extension.
             elif temp_path == 'complex_filetype':
-                self._complexFileType()
-            # Continues if file is converted correctly.  
+                self._complex_file_type()
+            # Continues if file is converted correctly.
             else:
-                self._changeWatchedFile(temp_path, file_path)
+                self._change_watched_file(temp_path, file_path)
 
                 if not self._curasplit:
                     for node in DepthFirstIterator(Application.getInstance().getController().getScene().getRoot()):
@@ -106,27 +115,12 @@ class BLENDReader(MeshReader):
                                     self._curasplit = True
                                     break
 
-                self._calculateAndSetScale(nodes)
+                self._calculate_and_set_scale(nodes)
 
         return nodes
 
 
-    # After reading exported file change file reference to .blend clone.
-    def _changeWatchedFile(self, old_path, new_path):
-        """After reading exported file change file reference to .blend clone.
-
-        :param old_path: The path of the converted file.
-        :param new_path: The path of the actual .blend file.
-        """
-
-        # File watcher causes cura to crash on windows if threaded from removable device (usb, ...). Create QEventLoop earlier to fix this.
-        if Platform.isWindows():
-            QEventLoop()
-        Application.getInstance().getController().getScene().removeWatchedFile(old_path)
-        CuraBlender.fs_watcher.addPath(new_path)
-
-
-    def _calculateAndSetScale(self, nodes):
+    def _calculate_and_set_scale(self, nodes):
         """Calculates the needed scale factor based on equivalence classes and finally scales all nodes equally.
 
         :param nodes: A list of all nodes contained in the file.
@@ -179,7 +173,7 @@ class BLENDReader(MeshReader):
                 elif len(nodes) <= 25:
                     if(scale_factor * area) > (print_area / 5):
                         scale_factor = scale_factor * ((print_area / 5) / (scale_factor * max(width, depth)))
-                        message = Message(text=CuraBlender.catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'), 
+                        message = Message(text=CuraBlender.catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
                                           title=CuraBlender.catalog.i18nc('@info:title', 'Objects were too broad'))
                 elif len(nodes) <= 49:
                     if(scale_factor * area) > (print_area / 7):
@@ -192,7 +186,7 @@ class BLENDReader(MeshReader):
                         message = Message(text=CuraBlender.catalog.i18nc('@info', 'Your objects were too broad together and got scaled down to maximum print size.'),
                                           title=CuraBlender.catalog.i18nc('@info:title', 'Objects were too broad'))
                 else:
-                    None
+                    pass
 
                 scale_factors.append(scale_factor)
 
@@ -210,11 +204,11 @@ class BLENDReader(MeshReader):
                                       button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
                     message.addAction('Ignore', CuraBlender.catalog.i18nc('@action:button', 'Ignore'), '[no_icon]', '[no_description]',
                                       button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_RIGHT)
-                    message.actionTriggered.connect(self._openBlenderTrigger)
+                    message.actionTriggered.connect(self._open_blender_trigger)
                     message.show()
 
 
-    def _openBlenderTrigger(self, message, action):
+    def _open_blender_trigger(self, message, action):
         """The trigger connected with open blender function.
 
         :param message: The opened message to hide with ignore button.
@@ -225,10 +219,10 @@ class BLENDReader(MeshReader):
 
         if action == 'Open in Blender':
             command = '"{}" "{}"'.format(self._blender_path, self._file_path)
-            CuraBlender.CuraBlender.openInBlender(command)
+            CuraBlender.CuraBlender.open_in_blender(command)
 
 
-    def _convertAndOpenFile(self, file_path, nodes):
+    def _convert_and_open_file(self, file_path, nodes):
         """Converts the original file to a supported file extension based on prechosen preference and reads it.
 
         :param file_path: The original path of the file we try to open.
@@ -238,8 +232,8 @@ class BLENDReader(MeshReader):
 
         # Checks, if file path contains the _curasplit_ flag (which indicates an already opened and split file -> important for reload).
         if '_curasplit_' not in file_path:
-            command = self.buildCommand('Count nodes', file_path)
-            objects = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE)
+            command = self._build_command('Count nodes', file_path)
+            objects = subprocess.run(command, shell = True, universal_newlines = True, stdout = subprocess.PIPE, check = False)
             # Checks output of our spawned subprocess which calculated the number of objects contained in the file.
             for nextline in objects.stdout.splitlines():
                 if nextline.isdigit():
@@ -249,19 +243,18 @@ class BLENDReader(MeshReader):
             # If file has no objects, returns None.
             if objects == 0:
                 temp_path = 'no_object'
-                return temp_path
             # Routine for files with exactly one object.
             elif objects == 1:
-                temp_path = self._buildTempPath(file_path)
-                import_file = self._importFile(temp_path)
-                command = self.buildCommand('Single node', file_path, import_file)
-                subprocess.run(command, shell = True)
-                node = self._openFile(temp_path)
+                temp_path = self._build_temp_path(file_path)
+                import_file = self._import_file(temp_path)
+                command = self._build_command('Single node', file_path, import_file)
+                subprocess.run(command, shell = True, check = False)
+                node = self._open_file(temp_path)
                 # Checks if user has permission for path of current file.
                 if self._check:
                     temp_path = self._check
                     return temp_path
-                node.getMeshData()._file_name = file_path
+                node.setMeshData(node.getMeshData().set(file_name = file_path))
                 nodes.append(node)
             # Routine for files with multiple objects.
             else:
@@ -269,10 +262,10 @@ class BLENDReader(MeshReader):
                 temp_paths = []
                 # Gets all objects one by one in separate files with help of index. Does this parallely.
                 for index in range(objects):
-                    temp_path = self._buildTempPath(file_path, index)
-                    import_file = self._importFile(temp_path)
+                    temp_path = self._build_temp_path(file_path, index)
+                    import_file = self._import_file(temp_path)
 
-                    command = self.buildCommand('Multiple nodes', file_path, import_file, str(index))
+                    command = self._build_command('Multiple nodes', file_path, import_file, str(index))
                     process = subprocess.Popen(command, shell = True)
                     processes.append(process)
                     temp_paths.append(temp_path)
@@ -281,12 +274,12 @@ class BLENDReader(MeshReader):
                 for (index, process, temp_path) in zip(range(objects), processes, temp_paths):
                     # Waits for possibly unfinished conversions.
                     process.wait()
-                    node = self._openFile(temp_path)
+                    node = self._open_file(temp_path)
                     # Checks if user has permission for path of current file.
                     if self._check:
                         temp_path = self._check
                     else:
-                        node.getMeshData()._file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], index + 1)
+                        node.setMeshData(node.getMeshData().set(file_name='{}_curasplit_{}.blend'.format(file_path[:-6], index + 1)))
                         nodes.append(node)
         # If file was derived from another .blend file, instead checks the original file by index.
         else:
@@ -294,20 +287,20 @@ class BLENDReader(MeshReader):
             index = int(file_path[file_path.index('_curasplit_') + 11:][:-6]) - 1
             file_path = '{}.blend'.format(file_path[:file_path.index('_curasplit_')])
 
-            temp_path = self._buildTempPath(file_path, index + 1)
-            import_file = self._importFile(temp_path)
+            temp_path = self._build_temp_path(file_path, index + 1)
+            import_file = self._import_file(temp_path)
 
-            command = self.buildCommand('Multiple nodes', file_path, import_file, str(index))
-            subprocess.run(command, shell = True)
+            command = self._build_command('Multiple nodes', file_path, import_file, str(index))
+            subprocess.run(command, shell = True, check = False)
 
-            node = self._openFile(temp_path)
-            node.getMeshData()._file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], index + 1)
+            node = self._open_file(temp_path)
+            node.setMeshData(node.getMeshData().set(file_name = '{}_curasplit_{}.blend'.format(file_path[:-6], index + 1)))
             nodes.append(node)
 
         return temp_path
 
 
-    def _buildTempPath(self, file_path, index = None):
+    def _build_temp_path(self, file_path, index = None):
         """Creates a temporary file with the random function to guarantee uniqueness. If multiple objects inside one file adds index.
 
         :param file_path: The path of the original file.
@@ -323,17 +316,17 @@ class BLENDReader(MeshReader):
         return temp_path
 
 
-    def buildCommand(self, program, file_path, instruction = None, index = None):
+    def _build_command(self, program, file_path, instruction = None, index = None):
         """Builds the command used by subprocess. Program inside the command is based on which mode gets called.
 
         :param program: Mode used by the BlenderAPI to determine which program to run (set of instructions).
-        :param file_path: The path of the original file.  
+        :param file_path: The path of the original file.
         :param instruction: String with the instruction for converting the file.
         :param index: If file contains multiple objects, it indicates the number of the current object.
         :return: The complete command needed by subprocess.
         """
 
-        self._plugin_path = CuraBlender.CuraBlender.getPluginPath()
+        self._plugin_path = CuraBlender.CuraBlender.get_plugin_path()
         self._script_path = os.path.join(self._plugin_path, 'BlenderAPI.py')
         self._blender_path = Application.getInstance().getPreferences().getValue('cura_blender/blender_path')
 
@@ -349,24 +342,24 @@ class BLENDReader(MeshReader):
         return command
 
 
-    def _importFile(self, file_path):
+    def _import_file(self, file_path):
         """Converts the original file into a new file with prechosen file extension.
 
         :param file_path: The original file path of the opened file.
         :return: String with the instruction for converting the file.
         """
 
-        if self._file_extension == 'stl' or self._file_extension == 'ply':
+        if self._file_extension in ('stl', 'ply'):
             import_file = "bpy.ops.export_mesh.{}(filepath = '{}', check_existing = False)".format(self._file_extension, file_path)
-        elif self._file_extension == 'obj' or self._file_extension == 'x3d':
+        elif self._file_extension in ('obj', 'x3d'):
             import_file = "bpy.ops.export_scene.{}(filepath = '{}', check_existing = False)".format(self._file_extension, file_path)
         else:
             # Unreachable statement, because allowed file extension got already verified.
-            None
+            pass
         return import_file
 
 
-    def _openFile(self, temp_path):
+    def _open_file(self, temp_path):
         """Reads the converted file and removes it after that.
 
         :param temp_path: The converted file to read.
@@ -394,7 +387,7 @@ class BLENDReader(MeshReader):
         return node
 
 
-    def _complexFileType(self):
+    def _complex_file_type(self):
         """Creates message for too complex files."""
 
         Logger.logException('e', '%s is too complex for %s', self._file_extension, self._file_path)
@@ -438,12 +431,12 @@ class BLENDReader(MeshReader):
             message.addAction('ply', CuraBlender.catalog.i18nc('@action:button', 'ply'), '[no_icon]', '[no_description]',
                               button_style=Message.ActionButtonStyle.SECONDARY, button_align=Message.ActionButtonAlignment.ALIGN_LEFT)
         else:
-            None
-        message.actionTriggered.connect(self._changeFileType)
+            pass
+        message.actionTriggered.connect(self._change_file_type)
         message.show()
 
 
-    def _changeFileType(self, message, action):
+    def _change_file_type(self, message, action):
         """The trigger connected for changing file type if it's too complex.
 
         :param message: The opened message to hide with ignore button.
@@ -461,3 +454,19 @@ class BLENDReader(MeshReader):
             success_message = Message(text=CuraBlender.catalog.i18nc('@info', 'File extension correctly changed.\n\nRetry loading the file.'),
                                       title=CuraBlender.catalog.i18nc('@info:title', 'Change succesfully'))
             success_message.show()
+
+
+    # After reading exported file change file reference to .blend clone.
+    @staticmethod
+    def _change_watched_file(old_path, new_path):
+        """After reading exported file change file reference to .blend clone.
+
+        :param old_path: The path of the converted file.
+        :param new_path: The path of the actual .blend file.
+        """
+
+        # File watcher causes cura to crash on windows if threaded from removable device (usb, ...). Create QEventLoop earlier to fix this.
+        if Platform.isWindows():
+            QEventLoop()
+        Application.getInstance().getController().getScene().removeWatchedFile(old_path)
+        CuraBlender.fs_watcher.addPath(new_path)

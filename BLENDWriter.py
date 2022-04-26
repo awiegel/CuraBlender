@@ -1,3 +1,5 @@
+"""Meshwriter for .blend files."""
+
 # Imports from the python standard library.
 import os
 import subprocess
@@ -33,7 +35,11 @@ class BLENDWriter(MeshWriter):
         super().__init__(add_to_recent_files = False)
 
         self._write_watcher = QFileSystemWatcher()
-        self._write_watcher.fileChanged.connect(self._writeChanged)
+        self._write_watcher.fileChanged.connect(self._write_changed)
+
+        self._plugin_path = None
+        self._script_path = None
+        self._blender_path = None
 
 
     def write(self, stream, nodes, mode = MeshWriter.OutputMode.BinaryMode):
@@ -49,16 +55,16 @@ class BLENDWriter(MeshWriter):
         success = True
 
         # Checks if path to blender is correct.
-        if CuraBlender.CuraBlender.verifyBlenderPath(manual=False):
+        if CuraBlender.CuraBlender.verify_blender_path(manual=False):
 
-            self._plugin_path = CuraBlender.CuraBlender.getPluginPath()
+            self._plugin_path = CuraBlender.CuraBlender.get_plugin_path()
             self._script_path = os.path.join(self._plugin_path, 'BlenderAPI.py')
 
-            file_list = self._createFileList(nodes)
-            
-            (blender_files, execute_list) = self._createExecuteList(file_list)
+            file_list = self._create_file_list(nodes)
 
-            command = self._buildCommand('Write', stream.name, blender_files, execute_list, temp_path = None)
+            (blender_files, execute_list) = self._create_execute_list(file_list)
+
+            command = self._build_command('Write', stream.name, blender_files, execute_list, temp_path = None)
 
             subprocess.Popen(command, shell = True)
 
@@ -71,23 +77,7 @@ class BLENDWriter(MeshWriter):
         return success
 
 
-    def _createFileList(self, nodes):
-        """Creates a file list containing the file path of all nodes.
-
-        :param nodes: All nodes on the current scene.
-        :return: File list with all paths of real nodes.
-        """
-
-        file_list = []
-        for node in nodes:
-            for children in node.getAllChildren():
-                # Filters nodes without real meshdata and which doesn't belong to any file.
-                if isinstance(children, CuraSceneNode) and not children.callDecoration("isGroup") and children.getMeshData().getFileName():
-                    file_list.append(children.getMeshData().getFileName())
-        return file_list
-
-
-    def _createExecuteList(self, file_list):
+    def _create_execute_list(self, file_list):
         """Creates a list (String) with instructions for every file in the file list.
 
         :param file_list: File list with paths of nodes.
@@ -119,9 +109,9 @@ class BLENDWriter(MeshWriter):
         processes = []
         for file_path in blender_files:
             temp_path = '{}_curatemp_.blend'.format(file_path[:-6])
-            command = self._buildCommand('Write prepare', file_path, temp_path = temp_path)
-            process = subprocess.Popen(command, shell = True)
-            processes.append(process)
+            command = self._build_command('Write prepare', file_path, temp_path = temp_path)
+            with subprocess.Popen(command, shell = True) as process:
+                processes.append(process)
             blend_list = '{}{}_curatemp_.blend;'.format(blend_list, file_path[:-6])
 
         for process in processes:
@@ -130,9 +120,9 @@ class BLENDWriter(MeshWriter):
         return (blend_list, execute_list)
 
 
-    def _buildCommand(self, program, file_name, blender_files = None, execute_list = None, temp_path = None):
+    def _build_command(self, program, file_name, blender_files = None, execute_list = None, temp_path = None):
         """Builds the command used by subprocess. Calls the 'Write' program.
-     
+
         :param program: Mode used by the BlenderAPI to determine which program to run (set of instructions).
         :param file_name: The file name we selected when saving the file.
         :param blender_files: A list (String) with all blender files.
@@ -149,7 +139,25 @@ class BLENDWriter(MeshWriter):
         return command
 
 
-    def _writeChanged(self, path):
+    @staticmethod
+    def _create_file_list(nodes):
+        """Creates a file list containing the file path of all nodes.
+
+        :param nodes: All nodes on the current scene.
+        :return: File list with all paths of real nodes.
+        """
+
+        file_list = []
+        for node in nodes:
+            for children in node.getAllChildren():
+                # Filters nodes without real meshdata and which doesn't belong to any file.
+                if isinstance(children, CuraSceneNode) and not children.callDecoration("isGroup") and children.getMeshData().getFileName():
+                    file_list.append(children.getMeshData().getFileName())
+        return file_list
+
+
+    @staticmethod
+    def _write_changed(path):
         """On file changed connection. Deletes the original saved file and replaces it with our own generated one.
 
         :param path: The path of our file we try to save.
